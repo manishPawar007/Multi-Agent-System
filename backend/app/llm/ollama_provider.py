@@ -6,10 +6,10 @@ from backend.app.config.settings import settings
 from backend.app.utils.logger import logger
 
 try:
-    from langchain_ollama import ChatOllama
+    from langchain_community.chat_models import ChatOllama  # type: ignore
 except Exception:
     try:
-        from langchain_community.chat_models import ChatOllama
+        from langchain_ollama import ChatOllama  # type: ignore
     except Exception:
         ChatOllama = None
 
