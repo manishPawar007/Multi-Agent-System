@@ -47,7 +47,8 @@ def sanitize_and_correct_query(query: str) -> str:
     """Smart typo correction and keyword normalization for search tools."""
     corrections = {
         r"\bcontam\b": "quantum",
-        r"\bquantom\b": "quantum",
+        r"\bquant[auo]m\b": "quantum",
+        r"\bkwantum\b": "quantum",
         r"\bpyton\b": "python",
         r"\bjavscript\b": "javascript",
         r"\bmachne\b": "machine",
@@ -100,8 +101,8 @@ I orchestrate specialized agents under Supervisor guidance to answer questions, 
     if any(phrase in q_lower for phrase in ["thank you", "thanks", "thx", "dhanyawad"]):
         return "You're very welcome! 😊 Feel free to reach out whenever you have more questions."
 
-    # 3. Quantum Computing Explanation (Claude 3.5 Style)
-    if "quantum" in q_lower or "contam" in q_lower:
+    # 3. Quantum Computing Explanation (Claude 3.5 Style - Handles 'quantam', 'quantom', 'quantum', 'contam')
+    if any(w in q_lower for w in ["quantum", "quantam", "quantom", "contam", "qubit"]):
         return """**Quantum Computing** is a computational paradigm based on the principles of quantum mechanics—such as **superposition** and **entanglement**—allowing it to solve complex problems exponentially faster than classical supercomputers.
 
 **Core Principles:**
