@@ -162,26 +162,32 @@ class SafeOllamaWrapper:
             content = generate_fallback_knowledge_response(prompt, self.raw_model)
         return ResponseObj()
 
+def get_ollama_model(model_name: Optional[str] = None, temperature: Optional[float] = None, base_url: Optional[str] = None) -> Any:
+    url = base_url or settings.OLLAMA_BASE_URL
+    target_model = model_name or settings.DEFAULT_LLM_MODEL
+    temp = temperature if temperature is not None else settings.DEFAULT_TEMPERATURE
+
+    resolved_model = resolve_ollama_model_name(target_model, url)
+    logger.info(f"Initializing OllamaProvider with model='{resolved_model}' at '{url}'")
+
+    base_llm = None
+    if ChatOllama is not None:
+        try:
+            base_llm = ChatOllama(
+                model=resolved_model,
+                base_url=url,
+                temperature=temp,
+            )
+        except Exception as e:
+            logger.warning(f"Could not instantiate ChatOllama: {e}")
+            base_llm = None
+
+    return SafeOllamaWrapper(base_llm, resolved_model, url, temp)
+
 class OllamaProvider:
     @staticmethod
     def create(model_name: Optional[str] = None, temperature: Optional[float] = None, user_settings: Optional[dict] = None) -> Any:
-        base_url = (user_settings and user_settings.get("ollama_url")) or settings.OLLAMA_BASE_URL
+        url = (user_settings and user_settings.get("ollama_url")) or settings.OLLAMA_BASE_URL
         target_model = model_name or (user_settings and user_settings.get("default_model")) or settings.DEFAULT_LLM_MODEL
         temp = temperature if temperature is not None else settings.DEFAULT_TEMPERATURE
-
-        resolved_model = resolve_ollama_model_name(target_model, base_url)
-        logger.info(f"Initializing OllamaProvider with model='{resolved_model}' at '{base_url}'")
-
-        base_llm = None
-        if ChatOllama is not None:
-            try:
-                base_llm = ChatOllama(
-                    model=resolved_model,
-                    base_url=base_url,
-                    temperature=temp,
-                )
-            except Exception as e:
-                logger.warning(f"Could not instantiate ChatOllama: {e}")
-                base_llm = None
-
-        return SafeOllamaWrapper(base_llm, resolved_model, base_url, temp)
+        return get_ollama_model(model_name=target_model, temperature=temp, base_url=url)
