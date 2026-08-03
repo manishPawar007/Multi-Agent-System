@@ -15,6 +15,7 @@ class MessageCreate(BaseModel):
     content: str
     provider: Optional[str] = None
     model: Optional[str] = None
+    document_id: Optional[str] = None
 
 class MessageResponse(BaseModel):
     id: str

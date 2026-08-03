@@ -2,40 +2,33 @@ import uuid
 import json
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from backend.app.models.chat import Chat
-from backend.app.models.message import Message
+from backend.app.models.chat import Chat, Message
 from backend.app.models.setting import UserSetting
-from backend.app.schemas.chat import ChatCreate, MessageCreate
+from backend.app.schemas.chat import ChatCreate, ChatUpdate, MessageCreate
 from backend.app.graph.multi_agent_graph import multi_agent_system
+from backend.app.utils.logger import logger
 from backend.app.utils.exceptions import EntityNotFoundError
 
 class ChatService:
     @staticmethod
     async def create_chat(db: AsyncSession, user_id: str, chat_data: ChatCreate) -> Chat:
-        res = await db.execute(select(UserSetting).where(UserSetting.user_id == user_id))
-        user_sett = res.scalar_one_or_none()
-
-        provider = chat_data.provider or (user_sett.default_provider if user_sett else settings.DEFAULT_LLM_PROVIDER)
-        model = chat_data.model or (user_sett.default_model if user_sett else settings.DEFAULT_LLM_MODEL)
-
-        chat = Chat(
+        new_chat = Chat(
             id=str(uuid.uuid4()),
             user_id=user_id,
             title=chat_data.title or "New Conversation",
-            provider=provider,
-            model=model
+            provider=chat_data.provider or "ollama",
+            model=chat_data.model or "qwen3"
         )
-        db.add(chat)
+        db.add(new_chat)
         await db.commit()
-        await db.refresh(chat)
-        chat.messages = []
-        return chat
+        await db.refresh(new_chat)
+        return new_chat
 
     @staticmethod
     async def get_user_chats(db: AsyncSession, user_id: str, search: Optional[str] = None) -> List[Chat]:
-        query = select(Chat).options(selectinload(Chat.messages)).where(Chat.user_id == user_id).order_by(Chat.updated_at.desc())
+        query = select(Chat).where(Chat.user_id == user_id).order_by(Chat.updated_at.desc())
         if search:
             query = query.where(Chat.title.ilike(f"%{search}%"))
         result = await db.execute(query)
@@ -92,6 +85,7 @@ class ChatService:
             user_id=user_id,
             provider=chat.provider,
             model=chat.model,
+            document_id=message_data.document_id,
             user_settings=user_setting
         )
 

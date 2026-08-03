@@ -7,6 +7,7 @@ class AgentState(TypedDict):
     provider: str
     model: str
     user_settings: Optional[Any]
+    document_id: Optional[str]
     execution_plan: List[str]
     current_agent: str
     research_data: Optional[str]

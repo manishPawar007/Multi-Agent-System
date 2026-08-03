@@ -49,7 +49,6 @@ class MultiAgentGraph:
     def _build_graph(self):
         workflow = StateGraph(AgentState)
 
-        # Add Nodes
         workflow.add_node("supervisor_plan", self.supervisor.plan_and_route)
         workflow.add_node("research_agent", self.research_agent.execute)
         workflow.add_node("rag_agent", self.rag_agent.execute)
@@ -60,19 +59,34 @@ class MultiAgentGraph:
         workflow.add_node("memory_agent", self.memory_agent.execute)
         workflow.add_node("supervisor_synthesize", self.supervisor.synthesize_response)
 
-        # Entry Point
         workflow.set_entry_point("supervisor_plan")
 
-        # Routing Logic
-        def route_next(state: AgentState):
+        def route_next(state: AgentState) -> str:
             plan = state.get("execution_plan", [])
-            outputs = state.get("agent_outputs", {})
+            completed = list(state.get("agent_outputs", {}).keys())
 
-            for agent in plan:
-                if agent not in outputs:
-                    return agent
+            for agent_name in plan:
+                if agent_name not in completed and agent_name in self.agent_map:
+                    state["current_agent"] = agent_name
+                    return agent_name
 
             return "supervisor_synthesize"
+
+        for node_name in ["research_agent", "rag_agent", "document_agent", "code_agent", "data_analysis_agent", "web_search_agent", "memory_agent"]:
+            workflow.add_conditional_edges(
+                node_name,
+                route_next,
+                {
+                    "research_agent": "research_agent",
+                    "rag_agent": "rag_agent",
+                    "document_agent": "document_agent",
+                    "code_agent": "code_agent",
+                    "data_analysis_agent": "data_analysis_agent",
+                    "web_search_agent": "web_search_agent",
+                    "memory_agent": "memory_agent",
+                    "supervisor_synthesize": "supervisor_synthesize",
+                }
+            )
 
         workflow.add_conditional_edges(
             "supervisor_plan",
@@ -85,38 +99,17 @@ class MultiAgentGraph:
                 "data_analysis_agent": "data_analysis_agent",
                 "web_search_agent": "web_search_agent",
                 "memory_agent": "memory_agent",
-                "supervisor_synthesize": "supervisor_synthesize"
+                "supervisor_synthesize": "supervisor_synthesize",
             }
         )
-
-        for agent_node in [
-            "research_agent", "rag_agent", "document_agent",
-            "code_agent", "data_analysis_agent", "web_search_agent", "memory_agent"
-        ]:
-            workflow.add_conditional_edges(
-                agent_node,
-                route_next,
-                {
-                    "research_agent": "research_agent",
-                    "rag_agent": "rag_agent",
-                    "document_agent": "document_agent",
-                    "code_agent": "code_agent",
-                    "data_analysis_agent": "data_analysis_agent",
-                    "web_search_agent": "web_search_agent",
-                    "memory_agent": "memory_agent",
-                    "supervisor_synthesize": "supervisor_synthesize"
-                }
-            )
 
         workflow.add_edge("supervisor_synthesize", END)
         return workflow.compile()
 
     def _run_native_fallback(self, state: AgentState) -> AgentState:
-        # Step 1: Supervisor Plan
         state = self.supervisor.plan_and_route(state)
         plan = state.get("execution_plan", [])
 
-        # Step 2: Execute sub-agents
         for agent_name in plan:
             if agent_name in self.agent_map:
                 try:
@@ -124,11 +117,19 @@ class MultiAgentGraph:
                 except Exception as e:
                     logger.error(f"Error executing agent '{agent_name}': {str(e)}")
 
-        # Step 3: Supervisor Synthesize
         state = self.supervisor.synthesize_response(state)
         return state
 
-    def run(self, query: str, chat_id: str, user_id: str, provider: str = "ollama", model: str = "qwen3", user_settings: Any = None) -> AgentState:
+    def run(
+        self,
+        query: str,
+        chat_id: str,
+        user_id: str,
+        provider: str = "ollama",
+        model: str = "qwen3",
+        user_settings: Any = None,
+        document_id: Optional[str] = None
+    ) -> AgentState:
         initial_state: AgentState = {
             "input_query": query,
             "chat_id": chat_id,
@@ -136,6 +137,7 @@ class MultiAgentGraph:
             "provider": provider,
             "model": model,
             "user_settings": user_settings,
+            "document_id": document_id,
             "execution_plan": [],
             "current_agent": "supervisor",
             "research_data": None,
@@ -153,11 +155,11 @@ class MultiAgentGraph:
 
         try:
             if HAS_LANGGRAPH and self.graph is not None:
-                logger.info(f"Invoking LangGraph Multi-Agent Engine for query: '{query}'")
+                logger.info(f"Invoking LangGraph Multi-Agent Engine for query: '{query}' with document_id: '{document_id}'")
                 output_state = self.graph.invoke(initial_state)
                 return output_state
             else:
-                logger.info(f"Invoking Native Multi-Agent Engine for query: '{query}'")
+                logger.info(f"Invoking Native Multi-Agent Engine for query: '{query}' with document_id: '{document_id}'")
                 return self._run_native_fallback(initial_state)
         except Exception as e:
             logger.error(f"Multi-agent graph processing exception: {str(e)}")

@@ -709,6 +709,18 @@ async function initChatView(chatId, queryFromUrl) {
 
   renderChatInterface();
 
+  // Populate Document Selector Dropdown
+  try {
+    const docs = await window.api.listDocuments();
+    const selectEl = document.getElementById("chat-document-select");
+    if (selectEl && docs && docs.length > 0) {
+      selectEl.innerHTML = `
+        <option value="" class="bg-card text-white">Search All Uploaded Documents (${docs.length} Files RAG)</option>
+        ${docs.map(d => `<option value="${d.id}" class="bg-card text-white">📄 ${d.filename} (${getDocChunkCount(d)} chunks)</option>`).join("")}
+      `;
+    }
+  } catch (err) {}
+
   if (queryFromUrl && !isSendingChat) {
     const inputEl = document.getElementById("chat-input");
     if (inputEl) {
@@ -743,7 +755,7 @@ function renderChatInterface() {
             </div>
             <h3 class="text-xl font-bold text-white mb-2">How can OmniAgent assist you today?</h3>
             <p class="text-sm text-gray-400 max-w-md mb-8">
-              Type any query below. The Supervisor Agent will construct an execution plan and delegate tasks to Web, Code, RAG, and Research sub-agents.
+              Type any query below. Select a target PDF file or let Supervisor auto-route to RAG, Web, Code, or Research agents.
             </p>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl">
@@ -761,17 +773,29 @@ function renderChatInterface() {
         ` : chatMessages.map((msg) => renderMessageBubbleHtml(msg)).join("")}
       </div>
 
-      <!-- Input Form -->
-      <form id="chat-form" class="relative mt-2 mb-1 shrink-0">
-        <div class="relative flex items-center bg-card/80 backdrop-blur-md rounded-2xl border border-border/80 focus-within:border-primary-500 shadow-2xl p-2">
-          <input type="text" id="chat-input" placeholder="Ask anything... (e.g., 'Research machine learning papers and summarize loaded docs')" class="flex-1 bg-transparent px-4 py-3 text-sm text-gray-100 placeholder-gray-500 focus:outline-none" />
-          <div class="flex items-center gap-2 px-2">
-            <button type="submit" id="btn-chat-send" class="p-3 rounded-xl bg-gradient-to-r from-primary-600 to-accent-purple hover:from-primary-500 hover:to-primary-600 text-white transition-all shadow-md shadow-primary-600/30">
-              ${getIconSvg("send", "w-4 h-4")}
-            </button>
+      <!-- Document Selector & Input Form -->
+      <div class="shrink-0 mt-2 mb-1">
+        <div class="flex items-center gap-2 mb-2 px-1">
+          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-card/90 backdrop-blur-md border border-border/80 text-xs text-gray-300 shadow-md">
+            ${getIconSvg("fileText", "w-4 h-4 text-accent-emerald")}
+            <span class="font-semibold text-gray-300">Target PDF / Document:</span>
+            <select id="chat-document-select" class="bg-transparent text-accent-emerald font-bold text-xs focus:outline-none cursor-pointer max-w-xs truncate">
+              <option value="" class="bg-card text-white">Search All Uploaded Documents (Global RAG)</option>
+            </select>
           </div>
         </div>
-      </form>
+
+        <form id="chat-form" class="relative">
+          <div class="relative flex items-center bg-card/80 backdrop-blur-md rounded-2xl border border-border/80 focus-within:border-primary-500 shadow-2xl p-2">
+            <input type="text" id="chat-input" placeholder="Ask anything about your selected PDF... (e.g., 'Summarize key points from page 1')" class="flex-1 bg-transparent px-4 py-3 text-sm text-gray-100 placeholder-gray-500 focus:outline-none" />
+            <div class="flex items-center gap-2 px-2">
+              <button type="submit" id="btn-chat-send" class="p-3 rounded-xl bg-gradient-to-r from-primary-600 to-accent-purple hover:from-primary-500 hover:to-primary-600 text-white transition-all shadow-md shadow-primary-600/30">
+                ${getIconSvg("send", "w-4 h-4")}
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   `;
 
@@ -1048,11 +1072,15 @@ async function handleSendMessage() {
       currentChatId = targetChatId;
     }
 
+    const docSelect = document.getElementById("chat-document-select");
+    const selectedDocId = docSelect ? docSelect.value : null;
+
     const response = await window.api.sendMessage({
       chat_id: targetChatId,
       content: content,
       provider: activeProvider,
       model: selectedModel,
+      document_id: selectedDocId,
     });
 
     let plan = [];
