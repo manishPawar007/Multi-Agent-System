@@ -61,12 +61,30 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 async function initApp() {
+  const token = window.getAuthToken();
   const currentHash = window.location.hash || "#dashboard";
 
-  try {
-    currentUser = await window.api.getMe();
-  } catch (err) {
-    currentUser = { id: "guest-user", email: "local@omniagent.ai", full_name: "Local User", role: "User" };
+  if (!token) {
+    currentUser = null;
+    if (!currentHash.includes("login") && !currentHash.includes("register")) {
+      window.location.hash = "#login";
+      return;
+    }
+  } else {
+    try {
+      currentUser = await window.api.getMe();
+      if (currentHash.includes("login") || currentHash.includes("register")) {
+        window.location.hash = "#dashboard";
+        return;
+      }
+    } catch (err) {
+      window.removeAuthToken();
+      currentUser = null;
+      if (!currentHash.includes("login") && !currentHash.includes("register")) {
+        window.location.hash = "#login";
+        return;
+      }
+    }
   }
 
   loadStats();
@@ -176,6 +194,12 @@ async function loadStats() {
 function handleRoute() {
   const hash = window.location.hash || "#dashboard";
   const isPublicRoute = hash.includes("login") || hash.includes("register");
+  const token = window.getAuthToken();
+
+  if (!token && !isPublicRoute) {
+    window.location.hash = "#login";
+    return;
+  }
 
   const header = document.getElementById("app-header");
   const sidebar = document.getElementById("app-sidebar");
