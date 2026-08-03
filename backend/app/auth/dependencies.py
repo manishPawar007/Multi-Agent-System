@@ -43,27 +43,21 @@ async def get_current_user(
     token: Optional[str] = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db)
 ) -> User:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
     if not token:
-        raise credentials_exception
+        return await get_or_create_default_user(db)
 
     payload = decode_access_token(token)
     if not payload:
-        raise credentials_exception
+        return await get_or_create_default_user(db)
 
     user_id: str = payload.get("sub")
     if not user_id:
-        raise credentials_exception
+        return await get_or_create_default_user(db)
 
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
 
     if not user:
-        raise credentials_exception
+        return await get_or_create_default_user(db)
 
     return user

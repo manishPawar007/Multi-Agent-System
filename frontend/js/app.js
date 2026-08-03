@@ -60,28 +60,12 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 async function initApp() {
-  const token = window.getAuthToken();
   const currentHash = window.location.hash || "#dashboard";
 
-  if (!token) {
-    if (!currentHash.includes("login") && !currentHash.includes("register")) {
-      window.location.hash = "#login";
-      return;
-    }
-  } else {
-    try {
-      currentUser = await window.api.getMe();
-      if (currentHash.includes("login") || currentHash.includes("register")) {
-        window.location.hash = "#dashboard";
-        return;
-      }
-    } catch (err) {
-      window.removeAuthToken();
-      if (!currentHash.includes("login") && !currentHash.includes("register")) {
-        window.location.hash = "#login";
-        return;
-      }
-    }
+  try {
+    currentUser = await window.api.getMe();
+  } catch (err) {
+    currentUser = { id: "guest-user", email: "local@omniagent.ai", full_name: "Local User", role: "User" };
   }
 
   loadStats();
