@@ -254,8 +254,18 @@ def get_ollama_model(model_name: Optional[str] = None, temperature: Optional[flo
 
 class OllamaProvider:
     @staticmethod
-    def create(model_name: Optional[str] = None, temperature: Optional[float] = None, user_settings: Optional[dict] = None) -> Any:
-        url = (user_settings and user_settings.get("ollama_url")) or settings.OLLAMA_BASE_URL
-        target_model = model_name or (user_settings and user_settings.get("default_model")) or settings.DEFAULT_LLM_MODEL
+    def create(model_name: Optional[str] = None, temperature: Optional[float] = None, user_settings: Optional[Any] = None) -> Any:
+        url = None
+        target_model = None
+        if user_settings:
+            if isinstance(user_settings, dict):
+                url = user_settings.get("ollama_url")
+                target_model = user_settings.get("default_model")
+            else:
+                url = getattr(user_settings, "ollama_url", None)
+                target_model = getattr(user_settings, "default_model", None)
+
+        url = url or settings.OLLAMA_BASE_URL
+        target_model = model_name or target_model or settings.DEFAULT_LLM_MODEL
         temp = temperature if temperature is not None else settings.DEFAULT_TEMPERATURE
         return get_ollama_model(model_name=target_model, temperature=temp, base_url=url)
