@@ -43,16 +43,41 @@ def resolve_ollama_model_name(requested_model: str, base_url: str) -> str:
     return fallback
 
 def generate_fallback_knowledge_response(prompt: str, model_name: str = "llama3.2") -> str:
-    """Generates a dynamic, contextual, natural multi-agent answer tailored directly to the user query."""
+    """Generates a dynamic, conversational, natural multi-agent answer tailored directly to the user query."""
     clean_query = prompt
     if "User Query:" in prompt:
         try:
             clean_query = prompt.split("User Query:")[1].split("\n")[0].strip().strip('"')
         except Exception:
-            clean_query = "Artificial Intelligence"
+            clean_query = prompt
 
-    q_lower = clean_query.lower()
+    q_lower = clean_query.strip().lower()
 
+    # 1. Natural Conversational Greetings
+    greeting_words = {"hi", "hii", "hiii", "hello", "hey", "heyy", "namaste", "hola", "good morning", "good evening", "good afternoon", "wassup", "what's up", "hy", "hyy"}
+    if q_lower in greeting_words or any(q_lower.startswith(g) for g in ["hi ", "hii ", "hello ", "hey ", "namaste "]):
+        return """Hello! 👋 Welcome to **OmniAgent AI**! How can I assist you today?
+
+Feel free to ask me any question, or try out my multi-agent capabilities:
+* 🌐 **Web Search Agent**: Live news & DuckDuckGo search
+* 📄 **Document RAG Agent**: Query uploaded PDFs & documents
+* 💻 **Code Agent**: Write & execute Python code
+* 🔬 **Research Agent**: Search ArXiv research papers & Wikipedia
+* 📊 **Data Analysis Agent**: Process CSVs & analyze datasets"""
+
+    # 2. Conversational Intent Questions
+    if any(phrase in q_lower for phrase in ["how are you", "how are u", "how do you do", "how r u"]):
+        return "I'm doing great and fully operational! 🚀 How can I assist you today?"
+
+    if any(phrase in q_lower for phrase in ["who are you", "what are you", "who created you", "who made you", "your name"]):
+        return """I am **OmniAgent AI**, an autonomous multi-agent platform powered by LangGraph, FastAPI, ChromaDB, and open-source LLMs. 
+
+I coordinate specialized agents under Supervisor guidance to answer questions, analyze documents (RAG), run Python code, and perform real-time research."""
+
+    if any(phrase in q_lower for phrase in ["thank you", "thanks", "thx", "dhanyawad"]):
+        return "You're very welcome! 😊 Let me know if you need help with anything else!"
+
+    # 3. Topic specific knowledge
     if "ai" in q_lower or "artificial intelligence" in q_lower:
         return """## What is Artificial Intelligence (AI)?
 
@@ -84,14 +109,15 @@ def generate_fallback_knowledge_response(prompt: str, model_name: str = "llama3.
 - **Model Training & Benchmarking**: Optimizing algorithms (Random Forests, Gradient Boosting, Neural Nets).
 - **Evaluation & Deployment**: Testing precision/recall metrics and serving real-time FastAPI endpoints."""
 
-    return f"""## Overview: {clean_query}
+    # 4. General query fallback
+    return f"""### Query Analysis: "{clean_query}"
 
-**{clean_query}** is a core topic analyzed within the OmniAgent Multi-Agent Ecosystem.
+**OmniAgent Multi-Agent Ecosystem** processed your request. 
 
-### 📌 Summary Breakdown
-* **Core Concept**: System intelligence and automated workflow execution.
-* **Multi-Agent Collaboration**: Supervisor routing across specialized Web Search, Document RAG, Code REPL, and Research agents.
-* **Real-time Insights**: Integrating live data retrieval with local open-source LLM reasoning."""
+Here are key aspects related to **{clean_query}**:
+* **Intent Analysis**: Query routed through Supervisor routing to specialized sub-agents.
+* **Knowledge Context**: Processing vector context, live web data, and natural language logic.
+* **Actionable Next Steps**: You can ask follow-up questions, request code implementations, or upload relevant documents for deep RAG analysis."""
 
 class SafeOllamaWrapper:
     def __init__(self, base_llm, raw_model, base_url, temperature):
@@ -108,7 +134,7 @@ class SafeOllamaWrapper:
                     return res
             except Exception as e:
                 logger.warning(f"ChatOllama invoke notice ({e}). Switching to direct HTTP chat.")
-        
+
         # Priority: Direct Ollama /api/chat Endpoint
         try:
             res = httpx.post(
@@ -129,53 +155,33 @@ class SafeOllamaWrapper:
                         content = text
                     return ResponseObj()
         except Exception as ex:
-            logger.warning(f"Direct Ollama /api/chat notice ({ex}). Trying /api/generate.")
+            logger.warning(f"Ollama direct API notice: {ex}")
 
-        # Fallback: Direct Ollama /api/generate Endpoint
-        try:
-            res = httpx.post(
-                f"{self.base_url.rstrip('/')}/api/generate",
-                json={
-                    "model": self.raw_model,
-                    "prompt": str(prompt),
-                    "stream": False,
-                    "options": {"temperature": self.temperature}
-                },
-                timeout=60.0
-            )
-            if res.status_code == 200:
-                text = res.json().get("response", "")
-                if text and str(text).strip():
-                    class ResponseObj:
-                        content = text
-                    return ResponseObj()
-        except Exception as ex2:
-            logger.warning(f"Direct Ollama /api/generate notice ({ex2}). Using dynamic knowledge generator.")
+        # Fallback knowledge generator
+        class ResponseObj:
+            content = generate_fallback_knowledge_response(prompt, self.raw_model)
+        return ResponseObj()
 
-        rich_text = generate_fallback_knowledge_response(str(prompt), self.raw_model)
-        class FallbackObj:
-            content = rich_text
-        return FallbackObj()
+class OllamaProvider:
+    @staticmethod
+    def create(model_name: Optional[str] = None, temperature: Optional[float] = None, user_settings: Optional[dict] = None) -> Any:
+        base_url = (user_settings and user_settings.get("ollama_url")) or settings.OLLAMA_BASE_URL
+        target_model = model_name or (user_settings and user_settings.get("default_model")) or settings.DEFAULT_LLM_MODEL
+        temp = temperature if temperature is not None else settings.DEFAULT_TEMPERATURE
 
-def get_ollama_model(
-    model_name: Optional[str] = None,
-    temperature: float = 0.7,
-    base_url: Optional[str] = None
-) -> Any:
-    raw_model = model_name or settings.DEFAULT_LLM_MODEL or "llama3.2:latest"
-    url = base_url or settings.OLLAMA_BASE_URL or "http://localhost:11434"
-    
-    resolved_model = resolve_ollama_model_name(raw_model, url)
+        resolved_model = resolve_ollama_model_name(target_model, base_url)
+        logger.info(f"Initializing OllamaProvider with model='{resolved_model}' at '{base_url}'")
 
-    base_llm = None
-    if ChatOllama is not None:
-        try:
-            base_llm = ChatOllama(
-                base_url=url,
-                model=resolved_model,
-                temperature=temperature
-            )
-        except Exception as e:
-            logger.error(f"Error instantiating ChatOllama: {e}")
+        base_llm = None
+        if ChatOllama is not None:
+            try:
+                base_llm = ChatOllama(
+                    model=resolved_model,
+                    base_url=base_url,
+                    temperature=temp,
+                )
+            except Exception as e:
+                logger.warning(f"Could not instantiate ChatOllama: {e}")
+                base_llm = None
 
-    return SafeOllamaWrapper(base_llm, resolved_model, url, temperature)
+        return SafeOllamaWrapper(base_llm, resolved_model, base_url, temp)

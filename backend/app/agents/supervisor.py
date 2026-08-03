@@ -8,34 +8,38 @@ class SupervisorAgent:
         pass
 
     def plan_and_route(self, state: AgentState) -> AgentState:
-        query = state["input_query"].lower()
+        query = state["input_query"].lower().strip()
         provider = state.get("provider", "ollama")
         model = state.get("model", "llama3.2:latest")
 
         logger.info(f"Supervisor Agent analyzing query: '{state['input_query']}'")
 
-        plan = []
-        if any(w in query for w in ["research", "arxiv", "paper", "study", "wikipedia", "journal", "academic"]):
-            plan.append("research_agent")
-        if any(w in query for w in ["rag", "document", "file", "index", "vector", "stored", "uploaded", "summary", "summarize"]):
-            plan.append("rag_agent")
-        if any(w in query for w in ["parse", "pdf", "excel", "ocr", "metadata", "extract"]):
-            plan.append("document_agent")
-        if any(w in query for w in ["code", "python", "java", "javascript", "sql", "bug", "html", "css", "refactor", "script", "function", "program"]):
-            plan.append("code_agent")
-        if any(w in query for w in ["csv", "data", "chart", "statistics", "trend", "dataframe", "table", "mean", "sum", "math", "calculate"]):
-            plan.append("data_analysis_agent")
-        if any(w in query for w in ["search", "web", "latest", "news", "duckduckgo", "github", "url", "what is", "who is", "explain"]):
-            plan.append("web_search_agent")
-        if any(w in query for w in ["memory", "remember", "history", "previous"]):
-            plan.append("memory_agent")
+        greetings = {"hi", "hii", "hiii", "hello", "hey", "heyy", "namaste", "hola", "good morning", "good evening", "good afternoon", "wassup", "what's up", "hy", "hyy"}
 
-        # Fallback to web search and RAG if query is broad
-        if not plan:
-            plan = ["web_search_agent", "rag_agent"]
+        plan = []
+        if query in greetings or any(query.startswith(g) for g in ["hi ", "hii ", "hello ", "hey ", "namaste "]):
+            plan = []
+        else:
+            if any(w in query for w in ["research", "arxiv", "paper", "study", "wikipedia", "journal", "academic"]):
+                plan.append("research_agent")
+            if any(w in query for w in ["rag", "document", "file", "index", "vector", "stored", "uploaded", "summary", "summarize"]):
+                plan.append("rag_agent")
+            if any(w in query for w in ["parse", "pdf", "excel", "ocr", "metadata", "extract"]):
+                plan.append("document_agent")
+            if any(w in query for w in ["code", "python", "java", "javascript", "sql", "bug", "html", "css", "refactor", "script", "function", "program"]):
+                plan.append("code_agent")
+            if any(w in query for w in ["csv", "data", "chart", "statistics", "trend", "dataframe", "table", "mean", "sum", "math", "calculate"]):
+                plan.append("data_analysis_agent")
+            if any(w in query for w in ["search", "web", "latest", "news", "duckduckgo", "github", "url", "what is", "who is", "explain"]):
+                plan.append("web_search_agent")
+            if any(w in query for w in ["memory", "remember", "history", "previous"]):
+                plan.append("memory_agent")
+
+            if not plan:
+                plan = ["web_search_agent"]
 
         state["execution_plan"] = plan
-        state["current_agent"] = plan[0]
+        state["current_agent"] = plan[0] if plan else "supervisor"
         logger.info(f"Supervisor Execution Plan created: {plan}")
 
         return state
@@ -54,7 +58,7 @@ class SupervisorAgent:
             if output and str(output).strip():
                 collected_info.append(f"=== Insights from [{agent_name.upper()}] ===\n{output}\n")
 
-        context = "\n\n".join(collected_info) if collected_info else "No sub-agent insights available."
+        context = "\n\n".join(collected_info) if collected_info else "No sub-agent insights required."
 
         prompt = f"""You are the Lead Supervisor AI of OmniAgent AI, an advanced LangGraph Multi-Agent Ecosystem.
 
@@ -65,11 +69,8 @@ Sub-Agent Insights & Execution Data:
 
 CRITICAL RESPONSE GUIDELINES MATCHING TOP MULTI-AGENT SYSTEMS (CrewAI / AutoGen / LangGraph):
 1. Synthesize a direct, natural, highly intelligent answer tailored specifically to the exact intent of the user query: "{query}".
-2. Adapt your tone and response format dynamically:
-   - For simple/direct questions (e.g. "what is AI?", "what is ML?"), provide a clean, clear, well-structured explanation matching the query.
-   - For complex multi-step queries (coding, document retrieval, research synthesis), provide comprehensive breakdowns with section headers, examples, code blocks, or mathematical formulas as relevant.
-3. Use clean GitHub-style Markdown (headings, bullet points, bold key terms, fenced code blocks).
-4. If sub-agent insights are available from Web Search, Document RAG, Code REPL, or Research agents, seamlessly integrate their findings into your response and cite them naturally.
+2. For simple greetings or casual messages (e.g. "hii", "hello", "hey", "how are you"), respond naturally and warmly like a friendly AI assistant without using heavy structured headings.
+3. For complex technical queries, use clean markdown (headings, bullet points, code blocks).
 
 Synthesize the final answer for the user:"""
 
