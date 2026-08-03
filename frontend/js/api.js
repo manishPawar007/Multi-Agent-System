@@ -1,4 +1,8 @@
-const API_BASE_URL = "http://localhost:8000/api/v1";
+const API_BASE_URL = (typeof window !== "undefined" && window.location.origin && !window.location.origin.includes("file://"))
+  ? (window.location.origin.includes("localhost") || window.location.origin.includes("127.0.0.1")
+      ? "http://localhost:8000/api/v1"
+      : `${window.location.origin}/api/v1`)
+  : "http://localhost:8000/api/v1";
 
 function getAuthToken() {
   if (typeof window !== "undefined") {
