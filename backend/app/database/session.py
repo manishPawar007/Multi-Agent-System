@@ -34,7 +34,7 @@ async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    # Seed default accounts on fresh deployment
+    # Seed default accounts safely
     async with AsyncSessionLocal() as session:
         try:
             # Seed Account 1: manish@gmail.com
@@ -51,7 +51,12 @@ async def init_db():
                 )
                 session.add(u1)
                 session.add(UserSetting(id=str(uuid.uuid4()), user_id=u1_id))
+                await session.commit()
+        except Exception as e:
+            await session.rollback()
+            logger.warning(f"Database seed notice (manish@gmail.com): {e}")
 
+        try:
             # Seed Account 2: admin@omniagent.ai
             res2 = await session.execute(select(User).where(User.email == "admin@omniagent.ai"))
             if not res2.scalar_one_or_none():
@@ -66,14 +71,17 @@ async def init_db():
                 )
                 session.add(u2)
                 session.add(UserSetting(id=str(uuid.uuid4()), user_id=u2_id))
-
-            await session.commit()
-        except Exception as ex:
-            logger.warning(f"Default user seeding notice: {ex}")
+                await session.commit()
+        except Exception as e:
+            await session.rollback()
+            logger.warning(f"Database seed notice (admin@omniagent.ai): {e}")
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         try:
             yield session
+        except Exception as e:
+            await session.rollback()
+            raise e
         finally:
             await session.close()

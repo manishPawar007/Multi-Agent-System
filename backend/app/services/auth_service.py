@@ -7,6 +7,7 @@ from backend.app.schemas.auth import UserRegister, UserLogin
 from backend.app.auth.security import get_password_hash, verify_password
 from backend.app.auth.jwt import create_access_token
 from backend.app.utils.exceptions import AuthenticationError
+from backend.app.utils.logger import logger
 
 class AuthService:
     @staticmethod
@@ -15,7 +16,7 @@ class AuthService:
         result = await db.execute(select(User).where(User.email == clean_email))
         existing_user = result.scalar_one_or_none()
         if existing_user:
-            raise AuthenticationError("Email already registered")
+            raise AuthenticationError("Email already registered. Please log in with your password.")
 
         new_user = User(
             id=str(uuid.uuid4()),
@@ -25,19 +26,24 @@ class AuthService:
             role="user",
             is_active=True
         )
-        db.add(new_user)
-        await db.flush()
+        try:
+            db.add(new_user)
+            await db.flush()
 
-        # Create default user settings
-        new_settings = UserSetting(
-            id=str(uuid.uuid4()),
-            user_id=new_user.id
-        )
-        db.add(new_settings)
+            # Create default user settings
+            new_settings = UserSetting(
+                id=str(uuid.uuid4()),
+                user_id=new_user.id
+            )
+            db.add(new_settings)
 
-        await db.commit()
-        await db.refresh(new_user)
-        return new_user
+            await db.commit()
+            await db.refresh(new_user)
+            return new_user
+        except Exception as e:
+            await db.rollback()
+            logger.warning(f"Registration Integrity Error for {clean_email}: {e}")
+            raise AuthenticationError("Email already registered. Please log in with your password.")
 
     @staticmethod
     async def authenticate_user(db: AsyncSession, login_data: UserLogin) -> dict:
