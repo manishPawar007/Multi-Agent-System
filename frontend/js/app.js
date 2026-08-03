@@ -716,10 +716,12 @@ async function initChatView(chatId, queryFromUrl) {
     if (selectEl && docs && docs.length > 0) {
       selectEl.innerHTML = `
         <option value="" class="bg-card text-white">Search All Uploaded Documents (${docs.length} Files RAG)</option>
-        ${docs.map(d => `<option value="${d.id}" class="bg-card text-white">📄 ${d.filename} (${getDocChunkCount(d)} chunks)</option>`).join("")}
+        ${docs.map(d => `<option value="${d.id}" class="bg-card text-white">📄 ${d.filename} (${d.chunk_count || 0} chunks)</option>`).join("")}
       `;
     }
-  } catch (err) {}
+  } catch (err) {
+    console.error("Failed to populate document selector:", err);
+  }
 
   if (queryFromUrl && !isSendingChat) {
     const inputEl = document.getElementById("chat-input");
