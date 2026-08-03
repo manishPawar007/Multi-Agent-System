@@ -4,7 +4,7 @@ from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from backend.app.models.chat import Chat, Message
+from backend.app.models import Chat, Message
 from backend.app.models.setting import UserSetting
 from backend.app.schemas.chat import ChatCreate, ChatUpdate, MessageCreate
 from backend.app.graph.multi_agent_graph import multi_agent_system
