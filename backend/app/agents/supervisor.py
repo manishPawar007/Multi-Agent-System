@@ -84,6 +84,9 @@ Synthesize the final answer for the user:"""
             state["final_response"] = final_text
         except Exception as e:
             logger.error(f"Supervisor synthesis fallback: {str(e)}")
-            state["final_response"] = generate_fallback_knowledge_response(query, model)
+            if "rag_agent" in agent_outputs and agent_outputs["rag_agent"]:
+                state["final_response"] = agent_outputs["rag_agent"]
+            else:
+                state["final_response"] = generate_fallback_knowledge_response(query, model)
 
         return state

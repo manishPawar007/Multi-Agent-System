@@ -9,9 +9,12 @@ class RAGAgent:
 
     def execute(self, state: AgentState) -> AgentState:
         query = state["input_query"]
-        logger.info(f"RAG Agent retrieving context for: '{query}'")
+        doc_id = state.get("document_id")
+        user_id = state.get("user_id")
 
-        context = self.pipeline.retrieve_context(query, k=4)
+        logger.info(f"RAG Agent retrieving context for: '{query}' (target document_id='{doc_id}')")
+
+        context = self.pipeline.retrieve_context(query, k=6, document_id=doc_id, user_id=user_id)
         state["rag_context"] = context
 
         llm = LLMProviderFactory.get_llm(
@@ -19,17 +22,17 @@ class RAGAgent:
             model_name=state.get("model"),
             user_settings=state.get("user_settings")
         )
-        prompt = f"""You are a Document RAG Knowledge Agent.
-User Question: {query}
+        prompt = f"""You are an Expert Document RAG Knowledge & Summarization Agent.
 
-Retrieved Document Chunks from ChromaDB Index:
+User Instruction / Question: "{query}"
+
+Retrieved PDF Document Chunks from ChromaDB Index:
 {context}
 
 Instructions:
-1. If relevant document chunks are present in the context above, use them to provide a detailed, accurate answer.
-2. If NO relevant document chunks are found (or no files have been uploaded yet):
-   - Answer the question directly using your comprehensive knowledge base.
-   - Mention that custom document chunks were not matched in the ChromaDB vector store, and remind the user that they can upload PDFs/documents in the 'Document Hub (RAG)' tab for custom file QA.
+1. Provide a comprehensive, highly accurate summary and detailed analysis based strictly on the retrieved PDF document chunks above.
+2. Highlight key points, main conclusions, methodologies, and core insights from the document.
+3. Use clean Markdown bullet points and bold section headings.
 """
 
         try:
@@ -37,7 +40,7 @@ Instructions:
             answer = res.content if hasattr(res, 'content') else str(res)
         except Exception as e:
             logger.error(f"RAG Agent LLM error: {e}")
-            answer = f"RAG Retrieval Context:\n{context}"
+            answer = f"### Document Vector Context Summary:\n{context}"
 
         if "agent_outputs" not in state or state["agent_outputs"] is None:
             state["agent_outputs"] = {}
