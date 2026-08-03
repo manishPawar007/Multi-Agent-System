@@ -81,11 +81,17 @@ Synthesize the final answer for the user:"""
         try:
             response = llm.invoke(prompt)
             final_text = response.content if hasattr(response, 'content') else str(response)
-            state["final_response"] = final_text
+            if final_text and len(final_text.strip()) > 30 and "OmniAgent AI System processed your query" not in final_text:
+                state["final_response"] = final_text
+            elif agent_outputs:
+                # Direct sub-agent response prioritization
+                state["final_response"] = list(agent_outputs.values())[-1]
+            else:
+                state["final_response"] = generate_fallback_knowledge_response(query, model)
         except Exception as e:
             logger.error(f"Supervisor synthesis fallback: {str(e)}")
-            if "rag_agent" in agent_outputs and agent_outputs["rag_agent"]:
-                state["final_response"] = agent_outputs["rag_agent"]
+            if agent_outputs:
+                state["final_response"] = list(agent_outputs.values())[-1]
             else:
                 state["final_response"] = generate_fallback_knowledge_response(query, model)
 
