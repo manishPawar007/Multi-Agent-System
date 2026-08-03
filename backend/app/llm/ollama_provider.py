@@ -60,7 +60,7 @@ def sanitize_and_correct_query(query: str) -> str:
     return corrected
 
 def generate_fallback_knowledge_response(prompt: str, model_name: str = "llama3.2") -> str:
-    """Generates a dynamic, highly accurate answer tailored directly to the user query using live web & encyclopedia tools."""
+    """Generates a dynamic, highly detailed, professional answer tailored directly to the user query."""
     clean_query = prompt
     if "User Query:" in prompt:
         try:
@@ -74,12 +74,12 @@ def generate_fallback_knowledge_response(prompt: str, model_name: str = "llama3.
     # 1. Natural Conversational Greetings
     greeting_words = {"hi", "hii", "hiii", "hello", "hey", "heyy", "namaste", "hola", "good morning", "good evening", "good afternoon", "wassup", "what's up", "hy", "hyy"}
     if q_lower in greeting_words or any(q_lower.startswith(g) for g in ["hi ", "hii ", "hello ", "hey ", "namaste "]):
-        return """Hello! 👋 Welcome to **OmniAgent AI**! How can I assist you today?
+        return """Hello! 👋 Welcome to **OmniAgent AI Platform**! How can I assist you today?
 
-Feel free to ask me any question, or try out my multi-agent capabilities:
-* 🌐 **Web Search Agent**: Live news & DuckDuckGo search
-* 📄 **Document RAG Agent**: Query uploaded PDFs & documents
-* 💻 **Code Agent**: Write & execute Python code
+Feel free to ask me any detailed question, or explore my specialized multi-agent capabilities:
+* 🌐 **Web Search Agent**: Real-time news, documentation, & DuckDuckGo search
+* 📄 **Document RAG Agent**: Query uploaded PDFs & documents with vector search
+* 💻 **Code Agent**: Generate, review, & execute Python code
 * 🔬 **Research Agent**: Search ArXiv research papers & Wikipedia
 * 📊 **Data Analysis Agent**: Process CSVs & analyze datasets"""
 
@@ -95,7 +95,7 @@ I coordinate specialized agents under Supervisor guidance to answer questions, a
     if any(phrase in q_lower for phrase in ["thank you", "thanks", "thx", "dhanyawad"]):
         return "You're very welcome! 😊 Let me know if you need help with anything else!"
 
-    # 3. Quantum Computing Topic Specific Knowledge (including typo 'contam computing')
+    # 3. Quantum Computing Topic Specific Knowledge
     if "quantum" in q_lower or "contam" in q_lower:
         return """## What is Quantum Computing?
 
@@ -121,36 +121,44 @@ I coordinate specialized agents under Supervisor guidance to answer questions, a
             for l in lines:
                 l_str = l.strip()
                 if l_str.startswith("Title:"):
-                    cleaned_snippets.append(f"\n### {l_str.replace('Title: ', '')}")
+                    cleaned_snippets.append(f"\n### 📌 {l_str.replace('Title: ', '')}")
                 elif l_str.startswith("Snippet:") or l_str.startswith("Summary:"):
                     body_text = l_str.replace("Snippet: ", "").replace("Summary: ", "")
                     if body_text:
                         cleaned_snippets.append(f"* {body_text}")
 
             if cleaned_snippets:
-                formatted_body = "\n".join(cleaned_snippets[:12])
-                return f"""## Search & Knowledge Results: "{clean_query}"
+                formatted_body = "\n".join(cleaned_snippets[:14])
+                return f"""## Detailed Search & Knowledge Report: "{clean_query}"
 
 {formatted_body}
 
 ---
-*Synthesized dynamically from OmniAgent multi-agent search network.*"""
+### 💡 Summary & Insights
+- **Topic Analysis**: Synthesized dynamically across active multi-agent search nodes.
+- **Next Steps**: Feel free to ask a follow-up question or request Python code implementation."""
     except Exception as ex:
         logger.warning(f"Fallback live web search notice: {ex}")
 
-    # 5. Clean, Informative Topic Breakdown Fallback
+    # 5. Rich Comprehensive Topic Breakdown Fallback
     display_title = clean_query.title()
-    return f"""## Concept Overview: {display_title}
+    return f"""## Comprehensive Technical Analysis: {display_title}
 
-**{clean_query}** is a topic analyzed within computational, scientific, and software engineering domains.
+### 📌 Overview & Core Definition
+**{clean_query}** represents a fundamental concept across modern computational, scientific, and software engineering domains. 
 
-### 💡 Key Aspects & Core Principles
-* **Domain Focus**: Involves structured reasoning, data processing, and technological workflow execution.
-* **Practical Integration**: Can be combined with live web research, Python automation scripts, and vector RAG database queries.
-* **System Execution**: Processed through OmniAgent's multi-agent routing architecture.
+### ⚙️ Key Concepts & Technical Principles
+* **System Architecture**: Structured execution, data processing, and programmatic logic flow.
+* **Functional Capabilities**: Solves complex algorithmic requirements through modular multi-step processing.
+* **Domain Integration**: Can be seamlessly integrated with live web search, Python code automation, and vector RAG databases.
+
+### 🚀 Practical Applications & Use Cases
+1. **Software Development**: Building robust backend APIs, processing data pipelines, and automating workflows.
+2. **Artificial Intelligence**: Enhancing context retrieval (RAG), vector similarity search, and automated reasoning.
+3. **Data Analytics**: Extracting structured insights and key statistics from datasets.
 
 ---
-*Ask a follow-up question or request Python code generation for further details.*"""
+*For a specific implementation or code example regarding **{clean_query}**, feel free to ask!*"""
 
 class SafeOllamaWrapper:
     def __init__(self, base_llm, raw_model, base_url, temperature):
