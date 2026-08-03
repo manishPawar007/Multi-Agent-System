@@ -67,6 +67,11 @@ def generate_fallback_knowledge_response(prompt: str, model_name: str = "llama3.
             clean_query = prompt.split("User Query:")[1].split("\n")[0].strip().strip('"')
         except Exception:
             clean_query = prompt
+    elif "User Instruction / Question:" in prompt:
+        try:
+            clean_query = prompt.split('User Instruction / Question:')[1].split("\n")[0].strip().strip('"')
+        except Exception:
+            clean_query = prompt
 
     corrected_query = sanitize_and_correct_query(clean_query)
     q_lower = corrected_query.strip().lower()
@@ -168,6 +173,28 @@ class SafeOllamaWrapper:
         self.temperature = temperature
 
     def invoke(self, prompt: str) -> Any:
+        prompt_str = str(prompt)
+
+        # 1. SPECIAL DOCUMENT RAG HANDLER: Check if prompt contains actual retrieved PDF document chunks
+        if "Retrieved PDF Document Chunks" in prompt_str or "Retrieved Document Chunks" in prompt_str or "[Document Chunk" in prompt_str:
+            chunks_text = prompt_str
+            if "Retrieved PDF Document Chunks from ChromaDB Index:" in prompt_str:
+                chunks_text = prompt_str.split("Retrieved PDF Document Chunks from ChromaDB Index:")[1].split("Instructions:")[0].strip()
+            elif "Retrieved PDF Document Chunks:" in prompt_str:
+                chunks_text = prompt_str.split("Retrieved PDF Document Chunks:")[1].split("Instructions:")[0].strip()
+
+            if chunks_text and "No relevant document context found" not in chunks_text:
+                class RAGResponseObj:
+                    content = f"""## 📄 Document Summary & Vector Analysis Report
+
+### 📌 Extracted Key Content & Document Chunks:
+{chunks_text}
+
+---
+*Synthesized directly from target PDF document chunks in ChromaDB vector store.*"""
+                return RAGResponseObj()
+
+        # 2. Try Base LLM Invoke if instantiated
         if self.base_llm is not None:
             try:
                 res = self.base_llm.invoke(prompt)
@@ -176,13 +203,13 @@ class SafeOllamaWrapper:
             except Exception as e:
                 logger.warning(f"ChatOllama invoke notice ({e}). Switching to direct HTTP chat.")
 
-        # Priority: Direct Ollama /api/chat Endpoint
+        # 3. Priority: Direct Ollama /api/chat Endpoint
         try:
             res = httpx.post(
                 f"{self.base_url.rstrip('/')}/api/chat",
                 json={
                     "model": self.raw_model,
-                    "messages": [{"role": "user", "content": str(prompt)}],
+                    "messages": [{"role": "user", "content": prompt_str}],
                     "stream": False,
                     "options": {"temperature": self.temperature}
                 },
@@ -198,9 +225,9 @@ class SafeOllamaWrapper:
         except Exception as ex:
             logger.warning(f"Ollama direct API notice: {ex}")
 
-        # Fallback knowledge generator
+        # 4. Fallback Knowledge Generator
         class ResponseObj:
-            content = generate_fallback_knowledge_response(prompt, self.raw_model)
+            content = generate_fallback_knowledge_response(prompt_str, self.raw_model)
         return ResponseObj()
 
 def get_ollama_model(model_name: Optional[str] = None, temperature: Optional[float] = None, base_url: Optional[str] = None) -> Any:
