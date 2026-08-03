@@ -1,8 +1,19 @@
-const API_BASE_URL = (typeof window !== "undefined" && window.location.origin && !window.location.origin.includes("file://"))
-  ? (window.location.origin.includes("localhost") || window.location.origin.includes("127.0.0.1")
-      ? "http://localhost:8000/api/v1"
-      : `${window.location.origin}/api/v1`)
-  : "http://localhost:8000/api/v1";
+// Dynamic API Base URL resolution for local and cloud deployments
+function getApiBaseUrl() {
+  if (typeof window !== "undefined" && window.location && window.location.host) {
+    if (window.location.protocol === "file:") {
+      return "http://localhost:8000/api/v1";
+    }
+    const host = window.location.host;
+    if (host.includes("localhost") || host.includes("127.0.0.1")) {
+      return "http://localhost:8000/api/v1";
+    }
+    return `${window.location.protocol}//${host}/api/v1`;
+  }
+  return "http://localhost:8000/api/v1";
+}
+
+const API_BASE_URL = getApiBaseUrl();
 
 function getAuthToken() {
   if (typeof window !== "undefined") {
@@ -23,7 +34,8 @@ function removeAuthToken() {
   }
 }
 
-async function request(endpoint, options = {}) {
+// Request with automatic retry loop for Render cold-starts & mobile network hiccups
+async function request(endpoint, options = {}, retries = 3) {
   const token = getAuthToken();
   const headers = {
     ...(options.headers || {}),
@@ -37,39 +49,53 @@ async function request(endpoint, options = {}) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  let lastError = null;
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...options,
+        headers,
+      });
 
-  if (!response.ok) {
-    if (
-      response.status === 401 &&
-      !endpoint.includes("/auth/login") &&
-      !endpoint.includes("/auth/register")
-    ) {
-      removeAuthToken();
-      if (
-        typeof window !== "undefined" &&
-        !window.location.hash.includes("login") &&
-        !window.location.hash.includes("register")
-      ) {
-        window.location.hash = "#login";
+      if (!response.ok) {
+        if (
+          response.status === 401 &&
+          !endpoint.includes("/auth/login") &&
+          !endpoint.includes("/auth/register")
+        ) {
+          removeAuthToken();
+          if (
+            typeof window !== "undefined" &&
+            !window.location.hash.includes("login") &&
+            !window.location.hash.includes("register")
+          ) {
+            window.location.hash = "#login";
+          }
+        }
+        const errorData = await response.json().catch(() => ({ detail: "An error occurred" }));
+        let msg = "An error occurred";
+        if (typeof errorData.detail === "string") {
+          msg = errorData.detail;
+        } else if (Array.isArray(errorData.detail) && errorData.detail.length > 0) {
+          msg = errorData.detail[0]?.msg || JSON.stringify(errorData.detail[0]);
+        } else if (errorData.detail) {
+          msg = JSON.stringify(errorData.detail);
+        }
+        throw new Error(msg || `HTTP Error ${response.status}`);
       }
-    }
-    const errorData = await response.json().catch(() => ({ detail: "An error occurred" }));
-    let msg = "An error occurred";
-    if (typeof errorData.detail === "string") {
-      msg = errorData.detail;
-    } else if (Array.isArray(errorData.detail) && errorData.detail.length > 0) {
-      msg = errorData.detail[0]?.msg || JSON.stringify(errorData.detail[0]);
-    } else if (errorData.detail) {
-      msg = JSON.stringify(errorData.detail);
-    }
-    throw new Error(msg || `HTTP Error ${response.status}`);
-  }
 
-  return response.json();
+      return await response.json();
+    } catch (err) {
+      lastError = err;
+      // If it's a fetch network error (e.g. Render waking up from sleep), wait 1.5s and retry
+      if (attempt < retries - 1 && (err.name === "TypeError" || err.message.includes("fetch"))) {
+        await new Promise((r) => setTimeout(r, 1500));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError || new Error("Failed to communicate with server");
 }
 
 const api = {
