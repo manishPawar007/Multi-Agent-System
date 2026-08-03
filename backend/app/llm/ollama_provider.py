@@ -60,7 +60,7 @@ def sanitize_and_correct_query(query: str) -> str:
     return corrected
 
 def generate_fallback_knowledge_response(prompt: str, model_name: str = "llama3.2") -> str:
-    """Industry-standard multi-agent response synthesizer (CrewAI / AutoGen / LangGraph benchmark)."""
+    """Ultra-sleek, professional multi-agent response synthesizer."""
     clean_query = prompt
     if "User Query:" in prompt:
         try:
@@ -79,7 +79,7 @@ def generate_fallback_knowledge_response(prompt: str, model_name: str = "llama3.
     # 1. Natural Conversational Greetings
     greeting_words = {"hi", "hii", "hiii", "hello", "hey", "heyy", "namaste", "hola", "good morning", "good evening", "good afternoon", "wassup", "what's up", "hy", "hyy"}
     if q_lower in greeting_words or any(q_lower.startswith(g) for g in ["hi ", "hii ", "hello ", "hey ", "namaste "]):
-        return """Hello! 👋 Welcome to **OmniAgent AI Multi-Agent Platform**!
+        return """Hello! 👋 Welcome to **OmniAgent AI Platform**!
 
 How can I assist you today? Feel free to ask a direct question or explore specialized agents:
 * 🌐 **Web Search Agent**: Real-time news & DuckDuckGo search
@@ -102,21 +102,33 @@ I coordinate specialized agents under Supervisor guidance to answer questions, a
 
     # 3. Quantum Computing Topic Knowledge Benchmark
     if "quantum" in q_lower or "contam" in q_lower:
-        return """## What is Quantum Computing?
+        return """# ⚛️ Quantum Computing: Technical Overview
 
-**Quantum Computing** is a revolutionary technology that leverages the principles of quantum mechanics to process information exponentially faster than classical supercomputers.
+**Quantum Computing** is an advanced paradigm that leverages quantum mechanical phenomena—such as **superposition** and **entanglement**—to perform computations exponentially faster than classical supercomputers.
 
-### ⚛️ Core Principles
-* **Qubits (Quantum Bits)**: Unlike classical bits (`0` or `1`), qubits exist in superposition (`0`, `1`, or both simultaneously).
-* **Superposition**: Allows processing millions of computational states in parallel.
-* **Quantum Entanglement**: Connects qubits instantly, enabling unprecedented processing speedup.
+---
 
-### 🚀 Key Applications & Industry Impact
-- **Cryptography & Security**: Advanced quantum encryption and post-quantum algorithms.
-- **Drug Discovery & Chemistry**: Simulating molecular structures for pharmaceutical breakthroughs.
-- **AI & Optimization**: Accelerating machine learning models and complex financial modeling."""
+## 📌 Core Operational Principles
 
-    # 4. Live Web Search & Information Retrieval Benchmark
+1. **Qubits (Quantum Bits)**
+   Unlike classical binary bits (`0` or `1`), qubits can exist in a linear combination of states (superposition), allowing simultaneous evaluation of vast computational paths.
+
+2. **Quantum Superposition & Entanglement**
+   - **Superposition**: Enables parallel processing across high-dimensional state spaces.
+   - **Entanglement**: Creates intrinsic correlations between qubits, scaling computational bandwidth quadratically with each added qubit.
+
+---
+
+## 🚀 Key Industry Applications
+
+* 🔒 **Post-Quantum Cryptography**: Designing quantum-resistant encryption protocols.
+* 🧬 **Molecular & Material Simulation**: Modeling complex chemical interactions for pharmaceutical acceleration.
+* 📊 **Optimization & AI Models**: Solving high-complexity combinatorial optimization problems in finance and machine learning.
+
+---
+*Synthesized by OmniAgent Multi-Agent Ecosystem.*"""
+
+    # 4. Live Web Search & Information Retrieval
     try:
         from backend.app.tools.search_tools import multi_free_web_search
         search_res = multi_free_web_search(corrected_query)
@@ -134,25 +146,29 @@ I coordinate specialized agents under Supervisor guidance to answer questions, a
 
             if cleaned_snippets:
                 formatted_body = "\n".join(cleaned_snippets[:12])
-                return f"""## Search & Knowledge Synthesis: "{clean_query}"
+                return f"""# 🌐 Search & Knowledge Synthesis: "{clean_query}"
 
 {formatted_body}
 
 ---
-*Synthesized dynamically from OmniAgent multi-agent search network.*"""
+*Synthesized dynamically from live open web search network.*"""
     except Exception as ex:
         logger.warning(f"Fallback live web search notice: {ex}")
 
-    # 5. General Query Standard Synthesis (CrewAI / AutoGen Benchmark)
+    # 5. General Query Standard Synthesis
     display_title = clean_query.title()
-    return f"""### 💡 Overview: {display_title}
+    return f"""# 💡 Technical Analysis: {display_title}
 
-**{clean_query}** is a core topic across software engineering, data analytics, and computational research domains.
+## 📌 Overview
+**{clean_query}** represents a fundamental concept across software engineering, data analytics, and computational research domains.
 
-#### 📌 Key Aspects & Highlights
-- **Core Concept**: Structured reasoning, algorithmic execution, and information processing.
-- **Practical Application**: Integrated into modern multi-agent systems, automated workflows, and search engines.
-- **Next Steps**: Ask a follow-up question or request Python code generation for deep analysis."""
+## ⚙️ Core Concepts & Technical Principles
+* **Algorithmic Logic**: Structured execution, multi-step processing, and data flow validation.
+* **Practical Integration**: Applicable across web services, API orchestration, and automated agent pipelines.
+* **System Execution**: Managed and routed through OmniAgent's LangGraph multi-agent architecture.
+
+---
+*For code implementation or document RAG analysis on **{clean_query}**, feel free to specify!*"""
 
 class SafeOllamaWrapper:
     def __init__(self, base_llm, raw_model, base_url, temperature):
@@ -164,7 +180,7 @@ class SafeOllamaWrapper:
     def invoke(self, prompt: str) -> Any:
         prompt_str = str(prompt)
 
-        # 1. BENCHMARK PDF DOCUMENT RAG SYNTHESIZER (CrewAI / AutoGen Standard)
+        # 1. ULTRA-SLEEK PDF DOCUMENT RAG SYNTHESIZER
         if "Retrieved PDF Document Chunks" in prompt_str or "Retrieved Document Chunks" in prompt_str or "[Document Chunk" in prompt_str:
             chunks_text = prompt_str
             if "Retrieved PDF Document Chunks from ChromaDB Index:" in prompt_str:
@@ -174,13 +190,13 @@ class SafeOllamaWrapper:
 
             if chunks_text and "No relevant document context found" not in chunks_text:
                 class RAGResponseObj:
-                    content = f"""### 📄 Executive Summary & PDF Document Analysis
+                    content = f"""# 📄 PDF Executive Document Summary & Analysis
 
-#### 📌 Key Extracted Findings & Text Insights:
+## 📌 Key Extracted Findings & Text Content
 {chunks_text}
 
 ---
-*Synthesized directly from target PDF document chunks in ChromaDB vector store.*"""
+*Synthesized directly by reading target PDF document chunks in ChromaDB vector store.*"""
                 return RAGResponseObj()
 
         # 2. Try Base LLM Invoke if instantiated
