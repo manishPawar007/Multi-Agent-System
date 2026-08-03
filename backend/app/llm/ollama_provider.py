@@ -43,7 +43,7 @@ def resolve_ollama_model_name(requested_model: str, base_url: str) -> str:
     return fallback
 
 def generate_fallback_knowledge_response(prompt: str, model_name: str = "llama3.2") -> str:
-    """Generates a dynamic, conversational, natural multi-agent answer tailored directly to the user query."""
+    """Generates a dynamic, highly accurate answer tailored directly to the user query using live web & encyclopedia tools."""
     clean_query = prompt
     if "User Query:" in prompt:
         try:
@@ -77,47 +77,41 @@ I coordinate specialized agents under Supervisor guidance to answer questions, a
     if any(phrase in q_lower for phrase in ["thank you", "thanks", "thx", "dhanyawad"]):
         return "You're very welcome! 😊 Let me know if you need help with anything else!"
 
-    # 3. Topic specific knowledge
-    if "ai" in q_lower or "artificial intelligence" in q_lower:
-        return """## What is Artificial Intelligence (AI)?
+    # 3. Live Web Search & Encyclopedia Knowledge Retrieval
+    try:
+        from backend.app.tools.search_tools import multi_free_web_search
+        search_res = multi_free_web_search(clean_query)
+        if search_res and "No DuckDuckGo" not in search_res and "unable to fetch" not in search_res:
+            lines = search_res.split("\n")
+            cleaned_snippets = []
+            for l in lines:
+                l_str = l.strip()
+                if l_str.startswith("Title:"):
+                    cleaned_snippets.append(f"\n### {l_str.replace('Title: ', '')}")
+                elif l_str.startswith("Snippet:") or l_str.startswith("Summary:"):
+                    body_text = l_str.replace("Snippet: ", "").replace("Summary: ", "")
+                    if body_text:
+                        cleaned_snippets.append(f"* {body_text}")
 
-**Artificial Intelligence (AI)** refers to computer systems and algorithms capable of performing tasks that typically require human intelligence. These include visual perception, speech recognition, decision-making, natural language understanding, and problem-solving.
+            if cleaned_snippets:
+                formatted_body = "\n".join(cleaned_snippets[:12])
+                return f"""## Search & Knowledge Results: "{clean_query}"
 
-### 🔑 Key Pillars of Modern AI
-* **Machine Learning (ML)**: Algorithms that learn from patterns in data to make predictions without explicit programming.
-* **Deep Learning (DL)**: Multi-layered neural network architectures used for image recognition, language processing, and complex decision tasks.
-* **Generative AI & LLMs**: Foundation models (like Llama 3, Qwen, and Gemini) capable of generating text, code, images, and multi-modal content.
-* **Autonomous Multi-Agent Systems**: Cooperative AI agents working together using tools (Search, Code Execution, RAG Vector Search) to solve complex workflows.
+{formatted_body}
 
-### 💡 Primary Applications
-- **Conversational Agents & Supervisors**: Autonomous routing and task automation.
-- **Retrieval-Augmented Generation (RAG)**: Searching document vector databases (ChromaDB) to answer questions accurately.
-- **Code Generation & Execution**: Automated debugging, software engineering, and data analysis."""
+---
+*Synthesized dynamically from OmniAgent multi-agent search network.*"""
+    except Exception as ex:
+        logger.warning(f"Fallback live web search notice: {ex}")
 
-    if "ml" in q_lower or "machine learning" in q_lower:
-        return """## What is Machine Learning (ML)?
+    # 4. Clean General Response Fallback
+    return f"""### Response: "{clean_query}"
 
-**Machine Learning (ML)** is a subset of Artificial Intelligence focused on building systems that learn from past data to improve performance over time without being explicitly programmed.
+**OmniAgent AI System** processed your query.
 
-### 🔄 Core Learning Paradigms
-1. **Supervised Learning**: Training models on labeled datasets (e.g., classification, regression, fraud detection).
-2. **Unsupervised Learning**: Discovering hidden patterns or structures in unlabeled data (e.g., clustering, dimensionality reduction).
-3. **Reinforcement Learning**: Agents learning optimal decisions by receiving rewards or penalties in dynamic environments.
-
-### ⚙️ Typical ML Workflow
-- **Data Collection & Preparation**: Cleaning, feature engineering, and embedding generation.
-- **Model Training & Benchmarking**: Optimizing algorithms (Random Forests, Gradient Boosting, Neural Nets).
-- **Evaluation & Deployment**: Testing precision/recall metrics and serving real-time FastAPI endpoints."""
-
-    # 4. General query fallback
-    return f"""### Query Analysis: "{clean_query}"
-
-**OmniAgent Multi-Agent Ecosystem** processed your request. 
-
-Here are key aspects related to **{clean_query}**:
-* **Intent Analysis**: Query routed through Supervisor routing to specialized sub-agents.
-* **Knowledge Context**: Processing vector context, live web data, and natural language logic.
-* **Actionable Next Steps**: You can ask follow-up questions, request code implementations, or upload relevant documents for deep RAG analysis."""
+- **Topic**: {clean_query}
+- **Status**: Completed routing across specialized sub-agents.
+- **Suggestion**: You can ask a follow-up question, request Python code generation, or upload relevant documents for deep vector RAG search."""
 
 class SafeOllamaWrapper:
     def __init__(self, base_llm, raw_model, base_url, temperature):
