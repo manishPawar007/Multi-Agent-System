@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  omniagent-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: omniagent-multi-agent
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=False
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - DATABASE_URL=sqlite+aiosqlite:///./omniagent.db
+    volumes:
+      - omniagent_data:/app/backend/uploads
+      - omniagent_chroma:/app/backend/chroma_db
+      - omniagent_db:/app/omniagent.db
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  omniagent_data:
+  omniagent_chroma:
+  omniagent_db:
