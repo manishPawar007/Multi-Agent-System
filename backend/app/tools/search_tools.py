@@ -7,19 +7,29 @@ from duckduckgo_search import DDGS
 from bs4 import BeautifulSoup
 from backend.app.utils.logger import logger
 
+def is_english_text(text: str) -> bool:
+    """Helper to verify text is predominantly English / non-CJK."""
+    if not text:
+        return True
+    cjk_count = len([c for c in text if '\u4e00' <= c <= '\u9fff' or '\u3040' <= c <= '\u30ff'])
+    return cjk_count < (len(text) * 0.15)
+
 def search_duckduckgo(query: str, max_results: int = 5) -> str:
-    """Performs web search using DuckDuckGo Free API."""
+    """Performs web search using DuckDuckGo Free API with English region filtering."""
     try:
         results = []
         with DDGS() as ddgs:
-            for r in ddgs.text(query, max_results=max_results):
+            for r in ddgs.text(query, region="en-us", max_results=max_results * 2):
                 title = r.get("title", "No Title")
                 snippet = r.get("body", "")
                 link = r.get("href", "")
-                results.append(f"Title: {title}\nURL: {link}\nSnippet: {snippet}\n")
+                if is_english_text(title) and is_english_text(snippet):
+                    results.append(f"Title: {title}\nURL: {link}\nSnippet: {snippet}\n")
+                    if len(results) >= max_results:
+                        break
 
         if not results:
-            return f"No DuckDuckGo web results found for query: '{query}'"
+            return f"No English web search results found for query: '{query}'"
 
         return f"DuckDuckGo Search Results for '{query}':\n\n" + "\n---\n".join(results)
     except Exception as e:
@@ -29,12 +39,14 @@ def search_duckduckgo(query: str, max_results: int = 5) -> str:
 def search_wikipedia(query: str, max_results: int = 3) -> str:
     """Searches Wikipedia free encyclopedia."""
     try:
+        wikipedia.set_lang("en")
         results = []
         search_hits = wikipedia.search(query, results=max_results)
         for title in search_hits:
             try:
                 summary = wikipedia.summary(title, sentences=3)
-                results.append(f"Title: {title}\nSummary: {summary}\n")
+                if is_english_text(title) and is_english_text(summary):
+                    results.append(f"Title: {title}\nSummary: {summary}\n")
             except Exception:
                 continue
         if not results:
@@ -61,51 +73,27 @@ def search_arxiv(query: str, max_results: int = 3) -> str:
         return f"Arxiv search notice: {e}"
 
 def search_github(query: str, max_results: int = 3) -> str:
-    """Searches GitHub public open source repository API."""
+    """Searches GitHub public code repositories."""
     try:
-        url = f"https://api.github.com/search/repositories?q={requests.utils.quote(query)}&sort=stars&order=desc"
-        res = requests.get(url, headers={"User-Agent": "OmniAgentAI/1.0"}, timeout=10)
+        url = f"https://api.github.com/search/repositories?q={query}&per_page={max_results}"
+        res = requests.get(url, headers={"User-Agent": "OmniAgent-AI-Platform"}, timeout=5.0)
         if res.status_code == 200:
-            data = res.json()
-            items = data.get("items", [])[:max_results]
+            items = res.json().get("items", [])
             results = []
             for item in items:
-                name = item.get("full_name", "")
-                desc = item.get("description", "")
-                stars = item.get("stargazers_count", 0)
-                link = item.get("html_url", "")
-                results.append(f"Repository: {name} (Stars: {stars})\nURL: {link}\nDescription: {desc}\n")
+                results.append(f"Repo: {item.get('full_name')}\nURL: {item.get('html_url')}\nDescription: {item.get('description', 'No description')}\nStars: {item.get('stargazers_count')}\n")
             if results:
-                return "GitHub Repository Search Results:\n\n" + "\n---\n".join(results)
+                return "GitHub Code Repository Results:\n\n" + "\n---\n".join(results)
         return "No GitHub repositories found."
     except Exception as e:
         return f"GitHub search notice: {e}"
 
-def search_stackoverflow(query: str, max_results: int = 3) -> str:
-    """Searches Stack Overflow public questions API."""
-    try:
-        url = f"https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=relevance&q={requests.utils.quote(query)}&site=stackoverflow"
-        res = requests.get(url, timeout=10)
-        if res.status_code == 200:
-            items = res.json().get("items", [])[:max_results]
-            results = []
-            for item in items:
-                title = item.get("title", "")
-                link = item.get("link", "")
-                score = item.get("score", 0)
-                is_answered = item.get("is_answered", False)
-                results.append(f"Question: {title} (Answered: {is_answered}, Score: {score})\nURL: {link}\n")
-            if results:
-                return "Stack Overflow Search Results:\n\n" + "\n---\n".join(results)
-        return "No Stack Overflow discussions found."
-    except Exception as e:
-        return f"Stack Overflow search notice: {e}"
-
 def multi_free_web_search(query: str) -> str:
-    """Aggregates all free open-source search tools (DuckDuckGo, Wikipedia, Arxiv, GitHub, StackOverflow)."""
-    ddg = search_duckduckgo(query, max_results=4)
-    wiki = search_wikipedia(query, max_results=2)
-    arxiv_res = search_arxiv(query, max_results=2)
-    github_res = search_github(query, max_results=2)
+    """Orchestrates search across free public search tools."""
+    logger.info(f"Executing Multi Free Web Search for: '{query}'")
 
-    return f"{ddg}\n\n{wiki}\n\n{arxiv_res}\n\n{github_res}"
+    ddg_res = search_duckduckgo(query, max_results=4)
+    wiki_res = search_wikipedia(query, max_results=2)
+
+    combined = f"=== Live Web Search Results ===\n{ddg_res}\n\n=== Wikipedia Encyclopedia Results ===\n{wiki_res}"
+    return combined

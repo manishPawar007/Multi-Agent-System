@@ -9,21 +9,25 @@ class SupervisorAgent:
 
     def plan_and_route(self, state: AgentState) -> AgentState:
         query = state["input_query"].lower().strip()
+        doc_id = state.get("document_id")
         provider = state.get("provider", "ollama")
         model = state.get("model", "llama3.2:latest")
 
-        logger.info(f"Supervisor Agent analyzing query: '{state['input_query']}'")
+        logger.info(f"Supervisor Agent analyzing query: '{state['input_query']}' (Selected document_id: '{doc_id}')")
 
         greetings = {"hi", "hii", "hiii", "hello", "hey", "heyy", "namaste", "hola", "good morning", "good evening", "good afternoon", "wassup", "what's up", "hy", "hyy"}
 
         plan = []
+        is_rag_query = bool(doc_id) or any(w in query for w in ["rag", "document", "file", "index", "vector", "stored", "uploaded", "summary", "summarize", "summerize", "summarise", "summery", "pdf", "docx", "excel", "report"])
+
         if query in greetings or any(query.startswith(g) for g in ["hi ", "hii ", "hello ", "hey ", "namaste "]):
             plan = []
+        elif is_rag_query:
+            # Always prioritize RAG agent when PDF/document is selected or queried
+            plan = ["rag_agent"]
         else:
             if any(w in query for w in ["research", "arxiv", "paper", "study", "wikipedia", "journal", "academic"]):
                 plan.append("research_agent")
-            if any(w in query for w in ["rag", "document", "file", "index", "vector", "stored", "uploaded", "summary", "summarize"]):
-                plan.append("rag_agent")
             if any(w in query for w in ["parse", "pdf", "excel", "ocr", "metadata", "extract"]):
                 plan.append("document_agent")
             if any(w in query for w in ["code", "python", "java", "javascript", "sql", "bug", "html", "css", "refactor", "script", "function", "program"]):
@@ -69,8 +73,8 @@ Sub-Agent Insights & Execution Data:
 
 CRITICAL RESPONSE GUIDELINES MATCHING TOP MULTI-AGENT SYSTEMS (CrewAI / AutoGen / LangGraph):
 1. Synthesize a direct, natural, highly intelligent answer tailored specifically to the exact intent of the user query: "{query}".
-2. For simple greetings or casual messages (e.g. "hii", "hello", "hey", "how are you"), respond naturally and warmly like a friendly AI assistant without using heavy structured headings.
-3. For complex technical queries, use clean markdown (headings, bullet points, code blocks).
+2. If Document RAG or sub-agent insights are available, synthesize them into a clean, comprehensive response with Markdown formatting.
+3. Provide all answers strictly in clean English.
 
 Synthesize the final answer for the user:"""
 
