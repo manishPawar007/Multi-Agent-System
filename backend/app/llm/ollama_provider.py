@@ -169,11 +169,26 @@ class SafeOllamaWrapper:
                 chunks_text = prompt_str.split("Retrieved PDF Document Chunks:")[1].split("Instructions:")[0].strip()
 
             if chunks_text and "No relevant document context found" not in chunks_text:
+                formatted_sections = []
+                for chunk in chunks_text.split("\n\n"):
+                    chunk_str = chunk.strip()
+                    if chunk_str:
+                        if chunk_str.startswith("[Document Chunk"):
+                            lines = chunk_str.split("\n")
+                            header = lines[0].strip()
+                            body = "\n".join(lines[1:]).strip()
+                            formatted_sections.append(f"**{header}:**\n> {body}")
+                        else:
+                            formatted_sections.append(f"* {chunk_str}")
+
+                extracted_body = "\n\n".join(formatted_sections) if formatted_sections else chunks_text
+
                 class RAGResponseObj:
-                    content = f"""Based on the target uploaded PDF document, here is a comprehensive summary and analysis:
+                    content = f"""Based on reading the target uploaded PDF document, here is a comprehensive summary and analysis:
 
 **Extracted Key Findings & Document Text:**
-{chunks_text}
+
+{extracted_body}
 
 ---
 *Retrieved directly from target PDF document chunks in ChromaDB vector store.*"""
