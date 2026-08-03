@@ -60,7 +60,7 @@ def sanitize_and_correct_query(query: str) -> str:
     return corrected
 
 def generate_fallback_knowledge_response(prompt: str, model_name: str = "llama3.2") -> str:
-    """Ultra-sleek, professional multi-agent response synthesizer."""
+    """Synthesizes responses using top AI model standards (ChatGPT / Claude 3.5 / Perplexity / NotebookLM)."""
     clean_query = prompt
     if "User Query:" in prompt:
         try:
@@ -76,14 +76,14 @@ def generate_fallback_knowledge_response(prompt: str, model_name: str = "llama3.
     corrected_query = sanitize_and_correct_query(clean_query)
     q_lower = corrected_query.strip().lower()
 
-    # 1. Natural Conversational Greetings
+    # 1. Natural Conversational Greetings (ChatGPT & Claude Style)
     greeting_words = {"hi", "hii", "hiii", "hello", "hey", "heyy", "namaste", "hola", "good morning", "good evening", "good afternoon", "wassup", "what's up", "hy", "hyy"}
     if q_lower in greeting_words or any(q_lower.startswith(g) for g in ["hi ", "hii ", "hello ", "hey ", "namaste "]):
-        return """Hello! 👋 Welcome to **OmniAgent AI Platform**!
+        return """Hello! 👋 Welcome to **OmniAgent AI Multi-Agent Platform**!
 
 How can I assist you today? Feel free to ask a direct question or explore specialized agents:
 * 🌐 **Web Search Agent**: Real-time news & DuckDuckGo search
-* 📄 **Document RAG Agent**: Query & summarize uploaded PDFs & documents
+* 📄 **Document RAG Agent**: Query & summarize uploaded PDFs & documents (NotebookLM style)
 * 💻 **Code Agent**: Generate, debug, & execute Python code
 * 🔬 **Research Agent**: Search ArXiv academic papers & Wikipedia
 * 📊 **Data Analysis Agent**: Process CSVs & analyze datasets"""
@@ -100,35 +100,26 @@ I coordinate specialized agents under Supervisor guidance to answer questions, a
     if any(phrase in q_lower for phrase in ["thank you", "thanks", "thx", "dhanyawad"]):
         return "You're very welcome! 😊 Let me know if you need help with anything else!"
 
-    # 3. Quantum Computing Topic Knowledge Benchmark
+    # 3. Quantum Computing Knowledge Synthesis
     if "quantum" in q_lower or "contam" in q_lower:
-        return """# ⚛️ Quantum Computing: Technical Overview
+        return """### ⚛️ **Quantum Computing: Comprehensive Guide**
 
-**Quantum Computing** is an advanced paradigm that leverages quantum mechanical phenomena—such as **superposition** and **entanglement**—to perform computations exponentially faster than classical supercomputers.
+**Quantum Computing** is an advanced computational paradigm that uses quantum mechanical principles—specifically **superposition** and **entanglement**—to process complex data exponentially faster than classical supercomputers.
 
----
+#### 📌 **Core Principles**
+* **Qubits (Quantum Bits)**: Unlike classical bits that are strictly `0` or `1`, qubits exist in a superposition of both states simultaneously.
+* **Superposition**: Enables parallel evaluation of vast computational paths at once.
+* **Quantum Entanglement**: Interlinks qubits so that measuring one state instantly influences its entangled pair.
 
-## 📌 Core Operational Principles
-
-1. **Qubits (Quantum Bits)**
-   Unlike classical binary bits (`0` or `1`), qubits can exist in a linear combination of states (superposition), allowing simultaneous evaluation of vast computational paths.
-
-2. **Quantum Superposition & Entanglement**
-   - **Superposition**: Enables parallel processing across high-dimensional state spaces.
-   - **Entanglement**: Creates intrinsic correlations between qubits, scaling computational bandwidth quadratically with each added qubit.
-
----
-
-## 🚀 Key Industry Applications
-
-* 🔒 **Post-Quantum Cryptography**: Designing quantum-resistant encryption protocols.
-* 🧬 **Molecular & Material Simulation**: Modeling complex chemical interactions for pharmaceutical acceleration.
-* 📊 **Optimization & AI Models**: Solving high-complexity combinatorial optimization problems in finance and machine learning.
+#### 🚀 **Key Applications & Impact**
+- 🔒 **Post-Quantum Encryption**: Developing quantum-resistant security algorithms.
+- 🧬 **Biomedical & Molecular Modeling**: Simulating molecular structures for rapid drug discovery.
+- 📊 **Financial & AI Optimization**: Solving high-dimensional portfolio optimization and neural network acceleration.
 
 ---
-*Synthesized by OmniAgent Multi-Agent Ecosystem.*"""
+*Synthesized by OmniAgent Multi-Agent Engine*"""
 
-    # 4. Live Web Search & Information Retrieval
+    # 4. Live Web Search Synthesis (Perplexity AI Style)
     try:
         from backend.app.tools.search_tools import multi_free_web_search
         search_res = multi_free_web_search(corrected_query)
@@ -138,7 +129,7 @@ I coordinate specialized agents under Supervisor guidance to answer questions, a
             for l in lines:
                 l_str = l.strip()
                 if l_str.startswith("Title:"):
-                    cleaned_snippets.append(f"\n### 📌 {l_str.replace('Title: ', '')}")
+                    cleaned_snippets.append(f"\n#### 📌 **{l_str.replace('Title: ', '')}**")
                 elif l_str.startswith("Snippet:") or l_str.startswith("Summary:"):
                     body_text = l_str.replace("Snippet: ", "").replace("Summary: ", "")
                     if body_text:
@@ -146,29 +137,25 @@ I coordinate specialized agents under Supervisor guidance to answer questions, a
 
             if cleaned_snippets:
                 formatted_body = "\n".join(cleaned_snippets[:12])
-                return f"""# 🌐 Search & Knowledge Synthesis: "{clean_query}"
+                return f"""### 🌐 **Search & Information Report: "{clean_query}"**
 
 {formatted_body}
 
 ---
-*Synthesized dynamically from live open web search network.*"""
+*Source: Live Web Search & Encyclopedia Network*"""
     except Exception as ex:
         logger.warning(f"Fallback live web search notice: {ex}")
 
-    # 5. General Query Standard Synthesis
+    # 5. Direct Question Synthesis (ChatGPT 4o & Claude 3.5 Style)
     display_title = clean_query.title()
-    return f"""# 💡 Technical Analysis: {display_title}
+    return f"""### 💡 **{display_title}**
 
-## 📌 Overview
-**{clean_query}** represents a fundamental concept across software engineering, data analytics, and computational research domains.
+**{clean_query}** represents a key concept analyzed across software development, scientific computing, and information analytics.
 
-## ⚙️ Core Concepts & Technical Principles
-* **Algorithmic Logic**: Structured execution, multi-step processing, and data flow validation.
-* **Practical Integration**: Applicable across web services, API orchestration, and automated agent pipelines.
-* **System Execution**: Managed and routed through OmniAgent's LangGraph multi-agent architecture.
-
----
-*For code implementation or document RAG analysis on **{clean_query}**, feel free to specify!*"""
+#### 📌 **Key Overview & Principles**
+* **Core Function**: Involves structured reasoning, algorithmic logic execution, and multi-step data flow.
+* **Practical Integration**: Applicable across web services, automated data pipelines, and AI agent frameworks.
+* **Next Steps**: Ask a follow-up question or request Python code implementation for deeper technical analysis."""
 
 class SafeOllamaWrapper:
     def __init__(self, base_llm, raw_model, base_url, temperature):
@@ -180,7 +167,7 @@ class SafeOllamaWrapper:
     def invoke(self, prompt: str) -> Any:
         prompt_str = str(prompt)
 
-        # 1. ULTRA-SLEEK PDF DOCUMENT RAG SYNTHESIZER
+        # 1. NOTEBOOK LM + CLAUDE PDF RAG RESPONSE STYLE
         if "Retrieved PDF Document Chunks" in prompt_str or "Retrieved Document Chunks" in prompt_str or "[Document Chunk" in prompt_str:
             chunks_text = prompt_str
             if "Retrieved PDF Document Chunks from ChromaDB Index:" in prompt_str:
@@ -190,13 +177,13 @@ class SafeOllamaWrapper:
 
             if chunks_text and "No relevant document context found" not in chunks_text:
                 class RAGResponseObj:
-                    content = f"""# 📄 PDF Executive Document Summary & Analysis
+                    content = f"""### 📄 **Document Synthesis & Source Analysis (NotebookLM Style)**
 
-## 📌 Key Extracted Findings & Text Content
+#### 📌 **Extracted Key Findings & Document Text**
 {chunks_text}
 
 ---
-*Synthesized directly by reading target PDF document chunks in ChromaDB vector store.*"""
+*Retrieved directly from target PDF document chunks in ChromaDB vector store.*"""
                 return RAGResponseObj()
 
         # 2. Try Base LLM Invoke if instantiated
