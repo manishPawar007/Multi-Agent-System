@@ -11,16 +11,17 @@ from backend.app.utils.exceptions import AuthenticationError
 class AuthService:
     @staticmethod
     async def register_user(db: AsyncSession, user_data: UserRegister) -> User:
-        result = await db.execute(select(User).where(User.email == user_data.email))
+        clean_email = user_data.email.strip().lower()
+        result = await db.execute(select(User).where(User.email == clean_email))
         existing_user = result.scalar_one_or_none()
         if existing_user:
             raise AuthenticationError("Email already registered")
 
         new_user = User(
             id=str(uuid.uuid4()),
-            email=user_data.email,
+            email=clean_email,
             hashed_password=get_password_hash(user_data.password),
-            full_name=user_data.full_name or user_data.email.split("@")[0],
+            full_name=user_data.full_name or clean_email.split("@")[0],
             role="user",
             is_active=True
         )
@@ -40,7 +41,8 @@ class AuthService:
 
     @staticmethod
     async def authenticate_user(db: AsyncSession, login_data: UserLogin) -> dict:
-        result = await db.execute(select(User).where(User.email == login_data.email))
+        clean_email = login_data.email.strip().lower()
+        result = await db.execute(select(User).where(User.email == clean_email))
         user = result.scalar_one_or_none()
 
         if not user or not verify_password(login_data.password, user.hashed_password):

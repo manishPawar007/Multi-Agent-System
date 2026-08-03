@@ -56,6 +56,7 @@ function getIconSvg(name, extraClass = "") {
 // Router & App Initialization
 window.addEventListener("DOMContentLoaded", () => {
   initApp();
+  attachAuthFormListeners();
   window.addEventListener("hashchange", handleRoute);
 });
 
@@ -70,6 +71,95 @@ async function initApp() {
 
   loadStats();
   handleRoute();
+}
+
+// Attach Form Event Listeners for Login & Register
+function attachAuthFormListeners() {
+  // Login Form
+  document.getElementById("form-login")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const emailInput = document.getElementById("login-email");
+    const passwordInput = document.getElementById("login-password");
+    const errorEl = document.getElementById("login-error");
+
+    if (!emailInput || !passwordInput) return;
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
+
+    if (errorEl) errorEl.innerHTML = `<div class="p-3 rounded-xl bg-primary-500/10 border border-primary-500/30 text-primary-300 text-xs">Signing in...</div>`;
+
+    try {
+      const resp = await window.api.login({ email, password });
+      if (resp.access_token) {
+        window.setAuthToken(resp.access_token);
+        currentUser = resp.user || await window.api.getMe();
+        if (errorEl) errorEl.innerHTML = `<div class="p-3 rounded-xl bg-accent-emerald/10 border border-accent-emerald/30 text-accent-emerald text-xs font-semibold">Logged in successfully! Redirecting...</div>`;
+        setTimeout(() => {
+          window.location.hash = "#dashboard";
+          initApp();
+        }, 500);
+      }
+    } catch (err) {
+      if (errorEl) {
+        errorEl.innerHTML = `<div class="p-3 rounded-xl bg-accent-rose/10 border border-accent-rose/30 text-accent-rose text-xs font-semibold">${err.message || 'Invalid email or password'}</div>`;
+      }
+    }
+  });
+
+  // Register Form
+  document.getElementById("form-register")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const emailInput = document.getElementById("reg-email");
+    const usernameInput = document.getElementById("reg-username");
+    const passwordInput = document.getElementById("reg-password");
+    const statusEl = document.getElementById("register-status");
+
+    if (!emailInput || !passwordInput) return;
+    const email = emailInput.value.trim();
+    const username = usernameInput ? usernameInput.value.trim() : "";
+    const password = passwordInput.value.trim();
+
+    if (statusEl) statusEl.innerHTML = `<div class="p-3 rounded-xl bg-primary-500/10 border border-primary-500/30 text-primary-300 text-xs">Creating account...</div>`;
+
+    try {
+      await window.api.register({ email, password, full_name: username });
+      if (statusEl) {
+        statusEl.innerHTML = `<div class="p-3 rounded-xl bg-accent-emerald/10 border border-accent-emerald/30 text-accent-emerald text-xs font-semibold">Account created! Signing in...</div>`;
+      }
+      const loginResp = await window.api.login({ email, password });
+      if (loginResp.access_token) {
+        window.setAuthToken(loginResp.access_token);
+        currentUser = loginResp.user || await window.api.getMe();
+        setTimeout(() => {
+          window.location.hash = "#dashboard";
+          initApp();
+        }, 500);
+      }
+    } catch (err) {
+      if (statusEl) {
+        statusEl.innerHTML = `<div class="p-3 rounded-xl bg-accent-rose/10 border border-accent-rose/30 text-accent-rose text-xs font-semibold">${err.message || 'Registration failed'}</div>`;
+      }
+    }
+  });
+
+  // 1-Click Guest / Demo Login Button
+  document.getElementById("btn-demo-login")?.addEventListener("click", async () => {
+    const errorEl = document.getElementById("login-error");
+    if (errorEl) errorEl.innerHTML = `<div class="p-3 rounded-xl bg-primary-500/10 border border-primary-500/30 text-primary-300 text-xs">Logging in with demo account...</div>`;
+    try {
+      const resp = await window.api.login({ email: "manish@gmail.com", password: "password123" });
+      if (resp.access_token) {
+        window.setAuthToken(resp.access_token);
+        currentUser = resp.user || await window.api.getMe();
+        window.location.hash = "#dashboard";
+        initApp();
+      }
+    } catch (err) {
+      currentUser = { id: "guest-user", email: "guest@omniagent.ai", full_name: "Guest User", role: "User" };
+      window.location.hash = "#dashboard";
+      initApp();
+    }
+  });
 }
 
 async function loadStats() {
