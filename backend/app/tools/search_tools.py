@@ -166,10 +166,14 @@ def clean_search_synthesis(query: str, search_data: str) -> str:
     if not any(marker in search_data for marker in ["=== Tavily", "=== Live Web", "Title:", "URL:", "Snippet:", "Relevance:"]):
         return cleaned_input
 
-    # 1. Look for Direct Answer in Tavily output (best quality concise answer)
+    # 1. Look for Direct Answer in Tavily output (best quality concise answer, supports multiline)
     if "Direct Answer:" in search_data:
         try:
-            direct_ans = search_data.split("Direct Answer:")[1].split("\n")[0].strip()
+            part = search_data.split("Direct Answer:")[1]
+            for marker in ["\n---", "\nTitle:", "\nURL:", "\n==="]:
+                if marker in part:
+                    part = part.split(marker)[0]
+            direct_ans = part.strip()
             direct_ans = re.sub(r"^\*{0,2}(Direct\s+)?Answer:\*{0,2}\s*", "", direct_ans, flags=re.IGNORECASE).strip()
             if len(direct_ans) > 20:
                 return direct_ans
@@ -224,6 +228,7 @@ def clean_search_synthesis(query: str, search_data: str) -> str:
         return result
 
     return cleaned_input[:400]
+
 
 
 
