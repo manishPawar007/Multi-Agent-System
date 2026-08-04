@@ -151,9 +151,9 @@ def search_github(query: str, max_results: int = 3) -> str:
 import re
 
 def clean_search_synthesis(query: str, search_data: str) -> str:
-    """Parses raw search data (Tavily/DDG/Wiki) and synthesizes a clean, detailed, beautifully structured response.
-    Strips raw headers, URLs, relevance scores, and metadata noise.
-    No 'Answer:' or 'Direct Answer:' keyword prefixes.
+    """Parses raw search data (Tavily/DDG/Wiki) and synthesizes a clean, natural, human-readable response.
+    Strips raw headers, URLs, relevance scores, metadata noise, table pipes (|), and artificial section titles.
+    No 'Answer:' or 'Direct Answer:' keyword prefixes, no artificial 'Key Details & Context' headers.
     """
     if not search_data or not isinstance(search_data, str):
         return f"Information regarding '{query}' is currently unavailable."
@@ -175,17 +175,22 @@ def clean_search_synthesis(query: str, search_data: str) -> str:
         except Exception:
             pass
 
-    # 2. Extract key clean sentences from snippets
-    clean_lines = []
-    seen_sentences = set()
+    # 2. Extract clean informative sentences
+    clean_sentences = []
+    seen_text = set()
+
     for line in search_data.split("\n"):
         line_str = line.strip()
-        # Skip raw metadata lines and Wikipedia/Tavily noise
-        if not line_str or any(line_str.startswith(prefix) for prefix in [
-            "===", "Title:", "URL:", "Relevance:", "[ Logo", "[ Flag", "[ Incumbent",
-            "[ Prime", "[ Style", "[ Type", "[ Abbreviation", "[ Member", "[ Reports",
-            "[ Residence", "[ Seat", "[ Nominator", "See also"
-        ]):
+        if not line_str:
+            continue
+
+        # Filter out metadata, table pipes, search headers, and Wiki noise
+        if any(bad in line_str for bad in [
+            "===", "Title:", "URL:", "Relevance:", "Search Results", "Tavily AI",
+            "DuckDuckGo", "Wikipedia Search", "Direct Answer:", "| Logo", "| Flag",
+            "| Incumbent", "| Prime", "| Style", "| Type", "| Abbreviation", "| Member",
+            "| Reports", "| Residence", "| Seat", "| Nominator", "See also"
+        ]) or line_str.startswith("|") or line_str.endswith("|"):
             continue
 
         if line_str.startswith("Snippet:") or line_str.startswith("Summary:"):
@@ -195,34 +200,39 @@ def clean_search_synthesis(query: str, search_data: str) -> str:
         line_str = re.sub(r"\[\d+\]", "", line_str)
         line_str = re.sub(r"\[\s*citation needed\s*\]", "", line_str, flags=re.IGNORECASE)
         line_str = re.sub(r"\[\s*\|\s*\]", "", line_str)
+        line_str = re.sub(r"\|", "", line_str).strip()
 
-        if len(line_str) > 20 and is_english_text(line_str):
-            simplified = line_str.lower()[:40]
-            if simplified not in seen_sentences:
-                seen_sentences.add(simplified)
-                clean_lines.append(line_str)
+        if len(line_str) > 25 and is_english_text(line_str):
+            key = line_str.lower()[:35]
+            if key not in seen_text:
+                seen_text.add(key)
+                clean_sentences.append(line_str)
 
-    # Build detailed response
-    response_parts = []
+    # 3. Assemble clean natural response (paragraphs, NO artificial headers, NO bullet point dumps)
+    paragraphs = []
+    if direct_ans and len(direct_ans) > 10:
+        paragraphs.append(direct_ans)
+
+    if clean_sentences:
+        additional = []
+        for s in clean_sentences:
+            if not direct_ans or (s.lower()[:30] not in direct_ans.lower()):
+                additional.append(s)
+            if len(additional) >= 3:
+                break
+        if additional:
+            paragraphs.append(" ".join(additional))
+
+    if paragraphs:
+        result = "\n\n".join(paragraphs).strip()
+        result = re.sub(r"^\*{0,2}(Direct\s+)?Answer:\*{0,2}\s*", "", result, flags=re.IGNORECASE).strip()
+        return result
 
     if direct_ans:
-        response_parts.append(f"### Overview\n{direct_ans}")
+        return direct_ans
 
-    if clean_lines:
-        details_list = [f"* {line}" for line in clean_lines[:6]]
-        if direct_ans:
-            response_parts.append("### Key Details & Context\n" + "\n".join(details_list))
-        else:
-            response_parts.append("### Summary\n" + " ".join(clean_lines[:2]))
-            if len(clean_lines) > 2:
-                response_parts.append("### Key Information\n" + "\n".join([f"* {l}" for l in clean_lines[2:6]]))
+    return cleaned_input[:400]
 
-    if response_parts:
-        final_out = "\n\n".join(response_parts)
-        final_out = re.sub(r"^\*{0,2}(Direct\s+)?Answer:\*{0,2}\s*", "", final_out, flags=re.IGNORECASE).strip()
-        return final_out
-
-    return f"Here is the detailed factual information for '{query}':\n\n" + cleaned_input[:400]
 
 
 
