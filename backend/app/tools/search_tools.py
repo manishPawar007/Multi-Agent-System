@@ -7,6 +7,7 @@ from duckduckgo_search import DDGS
 from backend.app.utils.logger import logger
 
 try:
+    # pyrefly: ignore [missing-import]
     from tavily import TavilyClient
 except Exception:
     TavilyClient = None
@@ -154,7 +155,7 @@ def search_github(query: str, max_results: int = 3) -> str:
 
 
 def clean_search_synthesis(query: str, search_data: str) -> str:
-    """Parses raw search data (Tavily/DDG/Wiki) and synthesizes a detailed, rich, human-readable response.
+    """Parses raw search data (Tavily/DDG/Wiki) and synthesizes a clean, natural, human-readable response.
     Strips raw headers, URLs, relevance scores, metadata noise, table pipes (|), and artificial section titles.
     No 'Answer:' or 'Direct Answer:' keyword prefixes, no duplicate text or ## heading noise.
     """
@@ -169,8 +170,7 @@ def clean_search_synthesis(query: str, search_data: str) -> str:
     if not any(marker in search_data for marker in ["=== Tavily", "=== Live Web", "Title:", "URL:", "Snippet:", "Relevance:"]):
         return cleaned_input
 
-    direct_ans = ""
-    # 1. Look for Direct Answer in Tavily output
+    # 1. Look for Direct Answer in Tavily output (best quality concise answer, supports multiline)
     if "Direct Answer:" in search_data:
         try:
             part = search_data.split("Direct Answer:")[1]
@@ -179,10 +179,12 @@ def clean_search_synthesis(query: str, search_data: str) -> str:
                     part = part.split(marker)[0]
             direct_ans = part.strip()
             direct_ans = re.sub(r"^\*{0,2}(Direct\s+)?Answer:\*{0,2}\s*", "", direct_ans, flags=re.IGNORECASE).strip()
+            if len(direct_ans) > 20:
+                return direct_ans
         except Exception:
             pass
 
-    # 2. Extract clean informative sentences from search snippets
+    # 2. Extract clean informative sentences if Direct Answer is not present
     clean_sentences = []
     seen_text = set()
 
@@ -224,29 +226,12 @@ def clean_search_synthesis(query: str, search_data: str) -> str:
                 seen_text.add(key)
                 clean_sentences.append(line_str)
 
-    # 3. Combine direct_ans with clean_sentences to form a detailed multi-paragraph response
-    parts = []
-    if direct_ans and len(direct_ans) > 15:
-        parts.append(direct_ans)
-
-    # Add supplementary sentences that don't duplicate direct_ans
-    additional = []
-    for s in clean_sentences:
-        if not direct_ans or (s.lower()[:30] not in direct_ans.lower()):
-            additional.append(s)
-        if len(additional) >= 4:
-            break
-
-    if additional:
-        parts.append(" ".join(additional))
-
-    if parts:
-        result = "\n\n".join(parts).strip()
+    if clean_sentences:
+        result = " ".join(clean_sentences[:3]).strip()
         result = re.sub(r"^\*{0,2}(Direct\s+)?Answer:\*{0,2}\s*", "", result, flags=re.IGNORECASE).strip()
         return result
 
-    return cleaned_input[:600]
-
+    return cleaned_input[:400]
 
 
 
