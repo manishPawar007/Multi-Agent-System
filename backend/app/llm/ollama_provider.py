@@ -115,19 +115,115 @@ I orchestrate specialized agents under Supervisor guidance to answer questions, 
 2. **Molecular Simulation**: Simulating molecular structures for pharmaceutical breakthroughs.
 3. **Optimization & AI**: Accelerating complex machine learning and financial modeling tasks."""
 
-    # 4. Artificial Intelligence & Machine Learning Knowledge Module
-    if any(w in q_lower for w in ["machine learning", "artificial intelligence", "deep learning", "neural network", "transformer", "llm"]):
-        return """**Artificial Intelligence (AI) and Machine Learning (ML)** refer to systems that can learn patterns from data to perform tasks without explicit step-by-step programming.
+    # 4a. LLM — Large Language Models (specific, must check BEFORE generic AI check)
+    if any(w in q_lower for w in ["llm", "large language model", "language model", "gpt", "bert", "gemini", "claude", "chatgpt", "llama", "mistral", "qwen"]):
+        return """**LLM (Large Language Model)** is a type of AI model trained on massive text datasets using the **Transformer architecture** to understand and generate human language at scale.
 
-**Core Paradigms:**
-* **Supervised Learning**: Training models on labeled datasets (e.g., classification, regression).
-* **Unsupervised Learning**: Discovering hidden patterns in unlabeled data (e.g., clustering, dimensionality reduction).
-* **Deep Learning & Transformers**: Neural network architectures utilizing self-attention mechanisms to process sequential text, vision, and audio data.
+**What makes an LLM?**
+* **Scale**: Billions to trillions of parameters (GPT-4 ~1.7T, LLaMA 3 ~70B, Qwen 2.5 ~72B)
+* **Pre-training**: Learns language patterns from internet-scale text using self-supervised learning (predicting next token)
+* **Fine-tuning / RLHF**: Aligned with human preferences using Reinforcement Learning from Human Feedback
 
-**Key Components:**
-1. **Data Preprocessing**: Cleaning, tokenization, and feature vectorization.
-2. **Model Training**: Loss minimization using gradient descent optimization.
-3. **Inference**: Generating real-time predictions and context retrieval (RAG)."""
+**How LLMs work:**
+1. **Tokenization**: Text → tokens (subword units)
+2. **Embedding**: Tokens → high-dimensional vectors
+3. **Transformer Attention**: Self-attention computes relationships between all tokens in context
+4. **Next-Token Prediction**: Auto-regressively generates output one token at a time
+
+**Popular LLMs:**
+| Model | Creator | Parameters |
+|-------|---------|------------|
+| GPT-4o | OpenAI | ~1.7T (est.) |
+| Claude 3.5 Sonnet | Anthropic | Unknown |
+| Gemini 1.5 Pro | Google | Unknown |
+| LLaMA 3.1 | Meta | 8B / 70B / 405B |
+| Qwen 2.5 | Alibaba | 7B–72B |
+| Mistral | Mistral AI | 7B–141B |
+
+**Key Capabilities:** Text generation, summarization, Q&A, code generation, translation, reasoning, RAG (Retrieval-Augmented Generation).
+
+**Limitations:** Hallucinations, knowledge cutoff, context window limits, no real-time data access (without tools)."""
+
+    # 4b. Deep Learning & Neural Networks
+    if any(w in q_lower for w in ["deep learning", "neural network", "cnn", "rnn", "lstm", "backpropagation"]):
+        return """**Deep Learning** is a subset of Machine Learning that uses multi-layered **Neural Networks** to automatically learn hierarchical feature representations from raw data.
+
+**Core Concepts:**
+* **Artificial Neuron**: Mimics biological neurons — takes weighted inputs, applies activation function, outputs signal
+* **Layers**: Input → Hidden (multiple) → Output; depth = number of hidden layers
+* **Backpropagation**: Computes gradients of loss w.r.t. weights; used with gradient descent (Adam, SGD) to update weights
+* **Activation Functions**: ReLU, Sigmoid, Softmax — introduce non-linearity for learning complex patterns
+
+**Key Architectures:**
+1. **CNN (Convolutional Neural Network)**: Image recognition, object detection (ResNet, VGG, YOLO)
+2. **RNN / LSTM**: Sequential data, time series, early NLP tasks
+3. **Transformer**: State-of-the-art for NLP, Vision, Audio — powers all modern LLMs
+4. **GAN (Generative Adversarial Network)**: Image generation, deepfakes
+
+**Applications:** Computer vision, speech recognition, medical diagnosis, autonomous driving, NLP."""
+
+    # 4c. Transformer Architecture
+    if any(w in q_lower for w in ["transformer", "attention mechanism", "self-attention", "encoder decoder"]):
+        return """**The Transformer** is a deep learning architecture introduced in the landmark paper *"Attention Is All You Need"* (Vaswani et al., 2017) that revolutionized NLP and AI.
+
+**Core Innovation — Self-Attention:**
+Instead of processing tokens sequentially (like RNNs), Transformers compute **attention scores** between every token pair simultaneously, capturing long-range dependencies in O(n²) complexity.
+
+**Architecture:**
+1. **Encoder**: Reads input, builds contextual representations (used in BERT, RoBERTa)
+2. **Decoder**: Generates output auto-regressively (used in GPT, LLaMA)
+3. **Encoder-Decoder**: Translation, summarization (T5, BART)
+
+**Multi-Head Attention:** Runs multiple attention operations in parallel — each head learns different relationship types (syntactic, semantic, positional).
+
+**Why Transformers dominate AI:**
+* Massive parallelization on GPUs/TPUs
+* Scales excellently with data and parameters
+* Foundational for GPT, BERT, T5, LLaMA, Gemini, Claude"""
+
+    # 4d. Machine Learning (broad)
+    if any(w in q_lower for w in ["machine learning", "ml ", "supervised", "unsupervised", "reinforcement learning"]):
+        return """**Machine Learning (ML)** is a branch of AI where systems learn patterns from data to make predictions or decisions **without being explicitly programmed** for each task.
+
+**Three Core Paradigms:**
+1. **Supervised Learning**: Model trained on labeled data (input → correct output)
+   * Algorithms: Linear Regression, Decision Trees, SVM, Neural Networks
+   * Use cases: Spam detection, image classification, price prediction
+
+2. **Unsupervised Learning**: Discovers hidden structure in unlabeled data
+   * Algorithms: K-Means, DBSCAN, PCA, Autoencoders
+   * Use cases: Customer segmentation, anomaly detection, dimensionality reduction
+
+3. **Reinforcement Learning (RL)**: Agent learns by interacting with environment, maximizing cumulative reward
+   * Algorithms: Q-Learning, PPO, A3C
+   * Use cases: Game AI (AlphaGo), robotics, recommendation systems
+
+**The ML Pipeline:** Data Collection → Preprocessing → Feature Engineering → Model Training → Evaluation → Deployment → Monitoring"""
+
+    # 4e. Artificial Intelligence (broadest — checked last)
+    if any(w in q_lower for w in ["artificial intelligence", " ai ", "what is ai", "define ai"]):
+        return """**Artificial Intelligence (AI)** is the simulation of human intelligence processes by computer systems — enabling machines to **perceive, reason, learn, and act** autonomously.
+
+**AI Hierarchy:**
+```
+Artificial Intelligence (broadest)
+  └── Machine Learning (learns from data)
+        └── Deep Learning (neural networks)
+              └── LLMs (language foundation models)
+```
+
+**Types of AI:**
+* **Narrow AI (ANI)**: Specialized for one task — current AI (ChatGPT, image classifiers, recommendation engines)
+* **General AI (AGI)**: Human-level reasoning across all domains — not yet achieved
+* **Super AI (ASI)**: Hypothetical AI surpassing human intelligence in all areas
+
+**Key Fields:**
+1. **Natural Language Processing (NLP)**: Understanding & generating text (LLMs, chatbots, translation)
+2. **Computer Vision**: Interpreting images/video (object detection, facial recognition, medical imaging)
+3. **Robotics**: Physical world interaction (autonomous vehicles, industrial automation)
+4. **Reinforcement Learning**: Decision making via reward signals (game AI, trading bots)
+
+**Real-world AI Applications:** ChatGPT, Google Search, Netflix recommendations, Tesla Autopilot, medical diagnosis, AlphaFold protein folding."""
 
     # 5. Programming & Python Software Engineering Module
     if any(w in q_lower for w in ["python", "javascript", "react", "fastapi", "django", "sql", "api", "database"]):
