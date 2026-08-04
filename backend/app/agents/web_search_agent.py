@@ -40,7 +40,7 @@ Search Data:
 
         import re
         if summary:
-            summary = re.sub(r"^\*{0,2}Answer:\*{0,2}\s*", "", summary, flags=re.IGNORECASE).strip()
+            summary = re.sub(r"^\*{0,2}(Direct\s+)?Answer:\*{0,2}\s*", "", summary, flags=re.IGNORECASE).strip()
 
         # If LLM failed or returned raw/error text, synthesize cleanly using fallback extractor!
         if not summary or any(marker in summary for marker in ["=== Tavily", "=== Live Web", "Title:", "URL:", "Snippet:", "Relevance:", "[Gemini"]):

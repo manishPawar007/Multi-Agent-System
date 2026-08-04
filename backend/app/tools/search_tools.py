@@ -153,22 +153,25 @@ import re
 def clean_search_synthesis(query: str, search_data: str) -> str:
     """Parses raw search data (Tavily/DDG/Wiki) and synthesizes a clean, detailed, beautifully structured response.
     Strips raw headers, URLs, relevance scores, and metadata noise.
-    No '**Answer:**' keyword prefix.
+    No 'Answer:' or 'Direct Answer:' keyword prefixes.
     """
     if not search_data or not isinstance(search_data, str):
         return f"Information regarding '{query}' is currently unavailable."
 
+    # Clean any "Direct Answer:" or "Answer:" prefix
+    cleaned_input = search_data.strip()
+    cleaned_input = re.sub(r"^\*{0,2}(Direct\s+)?Answer:\*{0,2}\s*", "", cleaned_input, flags=re.IGNORECASE).strip()
+
     # If search_data is already clean (doesn't contain raw search dump markers):
     if not any(marker in search_data for marker in ["=== Tavily", "=== Live Web", "Title:", "URL:", "Snippet:", "Relevance:"]):
-        res = search_data.strip()
-        res = re.sub(r"^\*{0,2}Answer:\*{0,2}\s*", "", res, flags=re.IGNORECASE)
-        return res
+        return cleaned_input
 
     direct_ans = ""
     # 1. Look for Direct Answer in Tavily output
     if "Direct Answer:" in search_data:
         try:
             direct_ans = search_data.split("Direct Answer:")[1].split("\n")[0].strip()
+            direct_ans = re.sub(r"^\*{0,2}(Direct\s+)?Answer:\*{0,2}\s*", "", direct_ans, flags=re.IGNORECASE).strip()
         except Exception:
             pass
 
@@ -188,7 +191,7 @@ def clean_search_synthesis(query: str, search_data: str) -> str:
         if line_str.startswith("Snippet:") or line_str.startswith("Summary:"):
             line_str = line_str.replace("Snippet: ", "").replace("Summary: ", "").strip()
 
-        # Remove Wiki bracketed noise like [1], [2], [ citation needed ]
+        line_str = re.sub(r"^\*{0,2}(Direct\s+)?Answer:\*{0,2}\s*", "", line_str, flags=re.IGNORECASE).strip()
         line_str = re.sub(r"\[\d+\]", "", line_str)
         line_str = re.sub(r"\[\s*citation needed\s*\]", "", line_str, flags=re.IGNORECASE)
         line_str = re.sub(r"\[\s*\|\s*\]", "", line_str)
@@ -216,10 +219,11 @@ def clean_search_synthesis(query: str, search_data: str) -> str:
 
     if response_parts:
         final_out = "\n\n".join(response_parts)
-        final_out = re.sub(r"^\*{0,2}Answer:\*{0,2}\s*", "", final_out, flags=re.IGNORECASE)
+        final_out = re.sub(r"^\*{0,2}(Direct\s+)?Answer:\*{0,2}\s*", "", final_out, flags=re.IGNORECASE).strip()
         return final_out
 
-    return f"Here is the detailed factual information for '{query}':\n\n" + search_data[:400]
+    return f"Here is the detailed factual information for '{query}':\n\n" + cleaned_input[:400]
+
 
 
 def multi_free_web_search(query: str) -> str:

@@ -92,7 +92,7 @@ Synthesize the final answer for the user:"""
                 and "API key not valid" not in final_text
                 and not final_text.startswith("=== Tavily")
             ):
-                state["final_response"] = re.sub(r"^\*{0,2}Answer:\*{0,2}\s*", "", final_text.strip(), flags=re.IGNORECASE)
+                state["final_response"] = re.sub(r"^\*{0,2}(Direct\s+)?Answer:\*{0,2}\s*", "", final_text.strip(), flags=re.IGNORECASE)
             elif agent_outputs:
                 output = list(agent_outputs.values())[-1]
                 state["final_response"] = clean_search_synthesis(query, output)
@@ -108,7 +108,7 @@ Synthesize the final answer for the user:"""
 
         import re
         if state.get("final_response"):
-            state["final_response"] = re.sub(r"^\*{0,2}Answer:\*{0,2}\s*", "", state["final_response"], flags=re.IGNORECASE).strip()
+            state["final_response"] = re.sub(r"^\*{0,2}(Direct\s+)?Answer:\*{0,2}\s*", "", state["final_response"], flags=re.IGNORECASE).strip()
 
         return state
 
