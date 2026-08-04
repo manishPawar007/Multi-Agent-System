@@ -1,0 +1,53 @@
+# ─── SECRET / SENSITIVE ───────────────────────────────────────────────────────
+.env
+.env.local
+.env.production
+*.secret
+
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.Python
+
+# ─── Database files ───────────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ─── Uploaded user files ──────────────────────────────────────────────────────
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# ─── ChromaDB vector store ────────────────────────────────────────────────────
+backend/chroma_db/
+chroma_db/
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+backend/logs/
+*.log
+
+# ─── Virtual Environment ──────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+
+# ─── IDE / Editor ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ─── Node (if any frontend build tools) ──────────────────────────────────────
+node_modules/
+.npm/
