@@ -326,9 +326,9 @@ function updateNavbar() {
         <span class="text-gray-300 font-medium">Model:</span>
         <select id="select-model" class="bg-transparent text-white font-semibold text-xs focus:outline-none cursor-pointer">
           <optgroup label="── Google Gemini (Cloud) ──" style="color:#818cf8;background:#111827">
-            <option value="gemini-1.5-flash" selected class="bg-card text-white">✨ Gemini 1.5 Flash (Fast)</option>
+            <option value="gemini-2.0-flash" selected class="bg-card text-white">⚡ Gemini 2.0 Flash (Recommended)</option>
+            <option value="gemini-1.5-flash" class="bg-card text-white">✨ Gemini 1.5 Flash (Fast)</option>
             <option value="gemini-1.5-pro" class="bg-card text-white">🧠 Gemini 1.5 Pro (Smart)</option>
-            <option value="gemini-2.0-flash" class="bg-card text-white">⚡ Gemini 2.0 Flash (Latest)</option>
           </optgroup>
           <optgroup label="── Local Ollama (Fallback) ──" style="color:#6b7280;background:#111827">
             <option value="llama3.2:latest" class="bg-card text-white">Llama 3.2 (Local)</option>

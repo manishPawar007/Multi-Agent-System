@@ -12,7 +12,7 @@ class SupervisorAgent:
         query = state["input_query"].lower().strip()
         doc_id = state.get("document_id")
         provider = state.get("provider", "gemini")
-        model = state.get("model", "gemini-1.5-flash")
+        model = state.get("model", "gemini-2.0-flash")
 
         logger.info(f"Supervisor Agent analyzing query: '{state['input_query']}' (Selected document_id: '{doc_id}')")
 
@@ -55,7 +55,7 @@ class SupervisorAgent:
 
     def synthesize_response(self, state: AgentState) -> AgentState:
         provider = state.get("provider", "gemini")
-        model = state.get("model", "gemini-1.5-flash")
+        model = state.get("model", "gemini-2.0-flash")
         user_settings = state.get("user_settings")
         llm = LLMProviderFactory.get_llm(provider=provider, model_name=model, user_settings=user_settings)
 
