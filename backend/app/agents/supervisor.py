@@ -22,36 +22,30 @@ class SupervisorAgent:
 
         # RAG is triggered ONLY if a specific document is selected in UI or query explicitly asks about uploaded pdf/file
         is_rag_query = bool(doc_id) or any(w in query for w in ["uploaded pdf", "my pdf", "uploaded file", "target document", "this pdf", "in the pdf", "uploaded document", "chromadb"])
+        is_code = any(w in query for w in ["code", "python", "java", "javascript", "js", "sql", "bug", "html", "css", "refactor", "script", "function", "program", "algorithm", "compiler", "api endpoint"])
+        is_math_data = any(w in query for w in ["csv", "excel", "chart", "statistics", "trend", "dataframe", "table", "math", "calculate", "percentage"])
+        is_research = any(w in query for w in ["arxiv", "paper", "scientific study", "journal", "academic literature"])
+        is_doc = any(w in query for w in ["ocr", "parse pdf", "extract text from image", "metadata extraction"])
+        is_memory = any(w in query for w in ["remember", "history", "previous chat", "what did i ask"])
+        is_search = any(w in query for w in ["search", "web", "latest", "news", "who is", "what is", "where is", "when did", "explain", "prime minister", "president", "capital", "weather"])
 
         if query in greetings or any(query.startswith(g) for g in ["hi ", "hii ", "hello ", "hey ", "namaste "]):
             plan = []
         elif is_rag_query:
             plan = ["rag_agent"]
-        else:
-            # 1. Code Agent (software engineering, programming, debugging)
-            if any(w in query for w in ["code", "python", "java", "javascript", "js", "sql", "bug", "html", "css", "refactor", "script", "function", "program", "algorithm", "compiler", "api endpoint"]):
-                plan.append("code_agent")
-
-            # 2. Data Analysis & Math Agent (calculations, statistics, tables, CSV)
-            if any(w in query for w in ["csv", "excel", "chart", "statistics", "trend", "dataframe", "table", "mean", "sum", "math", "calculate", "percentage", "+", "*", "/"]):
-                plan.append("data_analysis_agent")
-
-            # 3. Academic Research Agent (literature, arxiv, papers)
-            if any(w in query for w in ["arxiv", "paper", "scientific study", "journal", "academic literature"]):
-                plan.append("research_agent")
-
-            # 4. Document Parser Agent (OCR, layout parsing, file type capabilities)
-            if any(w in query for w in ["ocr", "parse pdf", "extract text from image", "metadata extraction"]):
-                plan.append("document_agent")
-
-            # 5. Memory Agent (chat history recall)
-            if any(w in query for w in ["remember", "history", "previous chat", "what did i ask"]):
-                plan.append("memory_agent")
-
-            # 6. Web Search Agent (Default for factual, informational, news, general knowledge, who/what/where/when/why queries)
-            if not plan or any(w in query for w in ["search", "web", "latest", "news", "who is", "what is", "where is", "when did", "explain", "prime minister", "president", "capital", "weather"]):
-                if "web_search_agent" not in plan:
-                    plan.append("web_search_agent")
+        elif is_code:
+            # Programming & code generation requests MUST go exclusively to CodeAgent
+            plan = ["code_agent"]
+        elif is_math_data:
+            plan = ["data_analysis_agent"]
+        elif is_research:
+            plan = ["research_agent"]
+        elif is_doc:
+            plan = ["document_agent"]
+        elif is_memory:
+            plan = ["memory_agent"]
+        elif is_search or not plan:
+            plan = ["web_search_agent"]
 
         state["execution_plan"] = plan
         state["current_agent"] = plan[0] if plan else "supervisor"
@@ -67,6 +61,11 @@ class SupervisorAgent:
 
         query = state["input_query"]
         agent_outputs = state.get("agent_outputs", {})
+
+        # Prioritize specialized agent output if available
+        if "code_agent" in agent_outputs and agent_outputs["code_agent"]:
+            state["final_response"] = agent_outputs["code_agent"]
+            return state
 
         collected_info = []
         for agent_name, output in agent_outputs.items():
@@ -105,14 +104,14 @@ Synthesize the final answer for the user:"""
             ):
                 state["final_response"] = re.sub(r"^\*{0,2}(Direct\s+)?Answer:\*{0,2}\s*", "", final_text.strip(), flags=re.IGNORECASE)
             elif agent_outputs:
-                output = list(agent_outputs.values())[-1]
+                output = list(agent_outputs.values())[0]
                 state["final_response"] = clean_search_synthesis(query, output)
             else:
                 state["final_response"] = generate_fallback_knowledge_response(query, model)
         except Exception as e:
             logger.error(f"Supervisor synthesis fallback: {str(e)}")
             if agent_outputs:
-                output = list(agent_outputs.values())[-1]
+                output = list(agent_outputs.values())[0]
                 state["final_response"] = clean_search_synthesis(query, output)
             else:
                 state["final_response"] = generate_fallback_knowledge_response(query, model)
