@@ -6,6 +6,11 @@ import arxiv
 from duckduckgo_search import DDGS
 from backend.app.utils.logger import logger
 
+try:
+    from tavily import TavilyClient
+except Exception:
+    TavilyClient = None
+
 def is_english_text(text: str) -> bool:
     """Helper to verify text is predominantly English / non-CJK."""
     if not text:
@@ -22,26 +27,26 @@ def search_tavily(query: str, max_results: int = 5) -> str:
             return ""
 
         # Try using tavily-python SDK first
-        try:
-            from tavily import TavilyClient
-            client = TavilyClient(api_key=api_key)
-            response = client.search(query=query, max_results=max_results, search_depth="advanced", include_answer=True)
-            results = response.get("results", [])
-            answer = response.get("answer", "")
+        if TavilyClient is not None:
+            try:
+                client = TavilyClient(api_key=api_key)
+                response = client.search(query=query, max_results=max_results, search_depth="advanced", include_answer=True)
+                results = response.get("results", [])
+                answer = response.get("answer", "")
 
-            formatted = []
-            if answer:
-                formatted.append(f"Direct Answer: {answer}\n")
-            for r in results:
-                title = r.get("title", "")
-                url = r.get("url", "")
-                content = r.get("content", "")
-                score = r.get("score", 0)
-                formatted.append(f"Title: {title}\nURL: {url}\nSnippet: {content}\nRelevance: {score:.2f}\n")
-            if formatted:
-                return f"Tavily AI Search Results for '{query}':\n\n" + "\n---\n".join(formatted)
-        except Exception:
-            pass
+                formatted = []
+                if answer:
+                    formatted.append(f"Direct Answer: {answer}\n")
+                for r in results:
+                    title = r.get("title", "")
+                    url = r.get("url", "")
+                    content = r.get("content", "")
+                    score = r.get("score", 0)
+                    formatted.append(f"Title: {title}\nURL: {url}\nSnippet: {content}\nRelevance: {score:.2f}\n")
+                if formatted:
+                    return f"Tavily AI Search Results for '{query}':\n\n" + "\n---\n".join(formatted)
+            except Exception:
+                pass
 
         # Direct HTTP fallback if SDK not installed or failed
         url = "https://api.tavily.com/search"
