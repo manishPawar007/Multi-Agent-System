@@ -150,17 +150,26 @@ function attachAuthFormListeners() {
     const username = usernameInput ? usernameInput.value.trim() : "";
     const password = passwordInput.value.trim();
 
-    if (statusEl) statusEl.innerHTML = `<div class="p-3 rounded-xl bg-primary-500/10 border border-primary-500/30 text-primary-300 text-xs">Creating account...</div>`;
+    if (statusEl) statusEl.innerHTML = `<div class="p-3 rounded-xl bg-primary-500/10 border border-primary-500/30 text-primary-300 text-xs">Creating account & signing in...</div>`;
 
     try {
-      await window.api.register({ email, password, full_name: username });
+      const regResp = await window.api.register({ email, password, full_name: username });
       if (statusEl) {
-        statusEl.innerHTML = `<div class="p-3 rounded-xl bg-accent-emerald/10 border border-accent-emerald/30 text-accent-emerald text-xs font-semibold">✓ Account created! Signing in...</div>`;
+        statusEl.innerHTML = `<div class="p-3 rounded-xl bg-accent-emerald/10 border border-accent-emerald/30 text-accent-emerald text-xs font-semibold">✓ Account created! Redirecting to workspace...</div>`;
       }
-      const loginResp = await window.api.login({ email, password });
-      if (loginResp.access_token) {
-        window.setAuthToken(loginResp.access_token);
-        currentUser = loginResp.user || await window.api.getMe();
+      
+      let token = regResp?.access_token;
+      let user = regResp?.user;
+      
+      if (!token) {
+        const loginResp = await window.api.login({ email, password });
+        token = loginResp.access_token;
+        user = loginResp.user;
+      }
+
+      if (token) {
+        window.setAuthToken(token);
+        currentUser = user || await window.api.getMe();
         storeLoginHistory(currentUser);
         setTimeout(() => {
           currentChatId = null;
@@ -169,7 +178,7 @@ function attachAuthFormListeners() {
           window.location.hash = "#dashboard";
           loadStats();
           handleRoute();
-        }, 600);
+        }, 400);
       }
     } catch (err) {
       if (statusEl) {

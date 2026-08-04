@@ -9,10 +9,11 @@ from backend.app.models.user import User
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-@router.post("/register", response_model=UserResponse)
+@router.post("/register", response_model=Token)
 async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
     user = await AuthService.register_user(db, user_data)
-    return user
+    token_resp = await AuthService.authenticate_user(db, UserLogin(email=user.email, password=user_data.password))
+    return token_resp
 
 @router.post("/login", response_model=Token)
 async def login(login_data: UserLogin, db: AsyncSession = Depends(get_db)):
