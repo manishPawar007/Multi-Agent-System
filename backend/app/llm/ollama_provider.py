@@ -239,27 +239,10 @@ Artificial Intelligence (broadest)
 
     # 6. Live Web Search & Information Retrieval (Factual Snippet Synthesis)
     try:
-        from backend.app.tools.search_tools import multi_free_web_search
+        from backend.app.tools.search_tools import multi_free_web_search, clean_search_synthesis
         search_res = multi_free_web_search(corrected_query)
-        if search_res and "No DuckDuckGo" not in search_res and "unable to fetch" not in search_res:
-            lines = search_res.split("\n")
-            cleaned_snippets = []
-            for l in lines:
-                l_str = l.strip()
-                if l_str.startswith("Title:"):
-                    cleaned_snippets.append(f"\n**{l_str.replace('Title: ', '')}**")
-                elif l_str.startswith("Snippet:") or l_str.startswith("Summary:"):
-                    body_text = l_str.replace("Snippet: ", "").replace("Summary: ", "")
-                    if body_text:
-                        cleaned_snippets.append(f"* {body_text}")
-
-            if cleaned_snippets:
-                formatted_body = "\n".join(cleaned_snippets[:12])
-                return f"""Here are the verified factual search results regarding **"{clean_query}"**:
-
-{formatted_body}
-
-*Source: Live Web Search & Encyclopedia Network*"""
+        if search_res and "unable to fetch" not in search_res:
+            return clean_search_synthesis(clean_query, search_res)
     except Exception as ex:
         logger.warning(f"Fallback live web search notice: {ex}")
 

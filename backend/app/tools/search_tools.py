@@ -26,22 +26,25 @@ def search_tavily(query: str, max_results: int = 5) -> str:
         try:
             from tavily import TavilyClient
             client = TavilyClient(api_key=api_key)
-            response = client.search(query=query, max_results=max_results, search_depth="advanced")
+            response = client.search(query=query, max_results=max_results, search_depth="advanced", include_answer=True)
             results = response.get("results", [])
-            if not results:
-                return ""
+            answer = response.get("answer", "")
+
             formatted = []
+            if answer:
+                formatted.append(f"Direct Answer: {answer}\n")
             for r in results:
                 title = r.get("title", "")
                 url = r.get("url", "")
                 content = r.get("content", "")
                 score = r.get("score", 0)
                 formatted.append(f"Title: {title}\nURL: {url}\nSnippet: {content}\nRelevance: {score:.2f}\n")
-            return f"Tavily AI Search Results for '{query}':\n\n" + "\n---\n".join(formatted)
-        except ImportError:
+            if formatted:
+                return f"Tavily AI Search Results for '{query}':\n\n" + "\n---\n".join(formatted)
+        except Exception:
             pass
 
-        # Direct HTTP fallback if SDK not installed
+        # Direct HTTP fallback if SDK not installed or failed
         url = "https://api.tavily.com/search"
         payload = {
             "api_key": api_key,
@@ -57,7 +60,7 @@ def search_tavily(query: str, max_results: int = 5) -> str:
             answer = data.get("answer", "")
             formatted = []
             if answer:
-                formatted.append(f"**Direct Answer:** {answer}\n")
+                formatted.append(f"Direct Answer: {answer}\n")
             for r in results:
                 title = r.get("title", "")
                 rurl = r.get("url", "")
@@ -145,13 +148,64 @@ def search_github(query: str, max_results: int = 3) -> str:
     except Exception as e:
         return f"GitHub search notice: {e}"
 
+import re
+
+def clean_search_synthesis(query: str, search_data: str) -> str:
+    """Parses raw search data (Tavily/DDG/Wiki) and synthesizes a clean, direct, human-readable answer.
+    Strips raw headers, URLs, relevance scores, and metadata noise.
+    """
+    if not search_data or not isinstance(search_data, str):
+        return f"No search data available for '{query}'."
+
+    # If search_data is already clean (doesn't contain raw search dump markers):
+    if not any(marker in search_data for marker in ["=== Tavily", "=== Live Web", "Title:", "URL:", "Snippet:", "Relevance:"]):
+        return search_data.strip()
+
+    # 1. Look for Direct Answer in Tavily output
+    if "Direct Answer:" in search_data:
+        try:
+            direct_ans = search_data.split("Direct Answer:")[1].split("\n")[0].strip()
+            if len(direct_ans) > 10:
+                return f"**Answer:** {direct_ans}"
+        except Exception:
+            pass
+
+    # 2. Extract key sentences from snippets
+    clean_lines = []
+    for line in search_data.split("\n"):
+        line_str = line.strip()
+        # Skip raw metadata lines and Wikipedia/Tavily noise
+        if not line_str or any(line_str.startswith(prefix) for prefix in [
+            "===", "Title:", "URL:", "Relevance:", "[ Logo", "[ Flag", "[ Incumbent",
+            "[ Prime", "[ Style", "[ Type", "[ Abbreviation", "[ Member", "[ Reports",
+            "[ Residence", "[ Seat", "[ Nominator", "See also"
+        ]):
+            continue
+
+        if line_str.startswith("Snippet:") or line_str.startswith("Summary:"):
+            line_str = line_str.replace("Snippet: ", "").replace("Summary: ", "").strip()
+
+        # Remove Wiki bracketed noise like [1], [2], [ citation needed ]
+        line_str = re.sub(r"\[\d+\]", "", line_str)
+        line_str = re.sub(r"\[\s*citation needed\s*\]", "", line_str, flags=re.IGNORECASE)
+        line_str = re.sub(r"\[\s*\|\s*\]", "", line_str)
+
+        if len(line_str) > 20 and is_english_text(line_str):
+            clean_lines.append(line_str)
+
+    if clean_lines:
+        best_text = " ".join(clean_lines[:3])
+        return f"**Answer:** {best_text}"
+
+    return f"Factual search summary for '{query}': {search_data[:300]}"
+
 def multi_free_web_search(query: str) -> str:
     """Orchestrates search — Tavily AI (primary) → DuckDuckGo + Wikipedia (fallback)."""
     logger.info(f"Executing Web Search for: '{query}'")
 
     # 1. Try Tavily first (best quality AI-optimized results)
     tavily_res = search_tavily(query, max_results=5)
-    if tavily_res and len(tavily_res) > 100:
+    if tavily_res and len(tavily_res) > 50:
         logger.info("Tavily search returned results — using as primary source.")
         wiki_res = search_wikipedia(query, max_results=2)
         return f"=== Tavily AI Search Results (Primary) ===\n{tavily_res}\n\n=== Wikipedia Encyclopedia Results ===\n{wiki_res}"
@@ -161,4 +215,5 @@ def multi_free_web_search(query: str) -> str:
     ddg_res = search_duckduckgo(query, max_results=4)
     wiki_res = search_wikipedia(query, max_results=2)
     return f"=== Live Web Search Results ===\n{ddg_res}\n\n=== Wikipedia Encyclopedia Results ===\n{wiki_res}"
+
 
