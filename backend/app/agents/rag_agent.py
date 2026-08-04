@@ -53,14 +53,17 @@ Retrieved Document Chunks (ChromaDB Vector Store):
             answer = re.sub(r"^\*{0,2}Answer:\*{0,2}\s*", "", answer, flags=re.IGNORECASE).strip()
 
         if not answer:
-            # Clean fallback formatting for retrieved chunks
-            clean_chunks = []
-            for chunk in (context or "").split("\n\n"):
-                c_str = chunk.strip()
-                if c_str and not c_str.startswith("[Document Chunk"):
-                    clean_chunks.append(f"* {c_str}")
-            formatted_chunks = "\n".join(clean_chunks[:6]) if clean_chunks else context
-            answer = f"### Document Context Insights\n\n{formatted_chunks}"
+            if context and context.strip():
+                clean_chunks = []
+                for chunk in context.split("\n\n"):
+                    c_str = chunk.strip()
+                    if c_str and not c_str.startswith("[Document Chunk"):
+                        clean_chunks.append(f"* {c_str}")
+                formatted_chunks = "\n".join(clean_chunks[:6]) if clean_chunks else context
+                answer = f"### Document Context Insights\n\n{formatted_chunks}"
+            else:
+                answer = f"No uploaded document chunks were found for: **'{query}'**. Please upload a PDF file in the **Document Hub (RAG)** tab or select a document from the target dropdown to analyze your file."
+
 
         if "agent_outputs" not in state or state["agent_outputs"] is None:
             state["agent_outputs"] = {}

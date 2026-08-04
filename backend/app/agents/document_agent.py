@@ -4,6 +4,19 @@ from backend.app.rag.parser import DocumentParser
 from backend.app.llm.provider_factory import LLMProviderFactory
 from backend.app.utils.logger import logger
 
+def generate_fallback_document_analysis(query: str) -> str:
+    return f"""### Document & Layout Analysis Overview
+
+OmniAgent's Document Engine parses multi-modal file formats including PDF, DOCX, XLSX, PPTX, and TXT files using OCR layout extraction.
+
+#### Supported Capabilities:
+- **PDF Layout Extraction**: Text, headers, tables, and embedded images.
+- **Office Documents (DOCX/XLSX)**: Paragraph hierarchies and structured data tables.
+- **OCR Engine**: Optical character recognition for scanned PDFs and image-based documents.
+
+**Query Breakdown:** {query}
+"""
+
 class DocumentAgent:
     def execute(self, state: AgentState) -> AgentState:
         query = state["input_query"]
@@ -40,7 +53,7 @@ User Request: {query}
             info = re.sub(r"^\*{0,2}Answer:\*{0,2}\s*", "", info, flags=re.IGNORECASE).strip()
 
         if not info:
-            info = f"### Document Analysis Report\n\n**Processed Query:** {query}\n\n* **Status**: Complete\n* **Parser Capabilities**: PDF, DOCX, XLSX, PPTX, TXT, OCR"
+            info = generate_fallback_document_analysis(query)
 
         state["document_summary"] = info
 
@@ -49,4 +62,5 @@ User Request: {query}
 
         state["agent_outputs"]["document_agent"] = info
         return state
+
 
