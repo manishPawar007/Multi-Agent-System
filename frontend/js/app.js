@@ -611,6 +611,19 @@ async function initDashboardView() {
   const container = document.getElementById("view-dashboard");
   if (!container) return;
 
+  // Refresh stats and chat counts dynamically on dashboard view
+  try {
+    currentStats = await window.api.getStats();
+  } catch (err) {}
+
+  let chatsCount = currentStats?.total_chats || 0;
+  try {
+    const chats = await window.api.listChats();
+    if (chats && Array.isArray(chats)) {
+      chatsCount = chats.length;
+    }
+  } catch (err) {}
+
   const agentCards = [
     { name: "Supervisor Agent", role: "Query Planner & Synthesizer", icon: "brain", color: "from-indigo-500 to-purple-600", desc: "Routes query to specialized agents using LangGraph." },
     { name: "Web Search Agent", role: "Live Web & DuckDuckGo", icon: "globe", color: "from-cyan-500 to-blue-600", desc: "Fetches live news, documentation, and real-time updates." },
@@ -655,7 +668,7 @@ async function initDashboardView() {
         <div class="glass-panel p-5 rounded-2xl border border-border/80 flex items-center justify-between">
           <div>
             <p class="text-xs text-gray-400 font-medium">Active Conversations</p>
-            <h3 class="text-2xl font-bold text-white mt-1">${currentStats?.total_chats || 0}</h3>
+            <h3 class="text-2xl font-bold text-white mt-1">${chatsCount}</h3>
           </div>
           <div class="w-12 h-12 rounded-xl bg-primary-600/20 border border-primary-500/30 flex items-center justify-center text-primary-400">
             ${getIconSvg("messageSquare", "w-6 h-6")}
