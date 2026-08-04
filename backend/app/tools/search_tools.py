@@ -153,7 +153,7 @@ import re
 def clean_search_synthesis(query: str, search_data: str) -> str:
     """Parses raw search data (Tavily/DDG/Wiki) and synthesizes a clean, natural, human-readable response.
     Strips raw headers, URLs, relevance scores, metadata noise, table pipes (|), and artificial section titles.
-    No 'Answer:' or 'Direct Answer:' keyword prefixes, no artificial 'Key Details & Context' headers.
+    No 'Answer:' or 'Direct Answer:' keyword prefixes, no duplicate text or ## heading noise.
     """
     if not search_data or not isinstance(search_data, str):
         return f"Information regarding '{query}' is currently unavailable."
@@ -166,16 +166,17 @@ def clean_search_synthesis(query: str, search_data: str) -> str:
     if not any(marker in search_data for marker in ["=== Tavily", "=== Live Web", "Title:", "URL:", "Snippet:", "Relevance:"]):
         return cleaned_input
 
-    direct_ans = ""
-    # 1. Look for Direct Answer in Tavily output
+    # 1. Look for Direct Answer in Tavily output (best quality concise answer)
     if "Direct Answer:" in search_data:
         try:
             direct_ans = search_data.split("Direct Answer:")[1].split("\n")[0].strip()
             direct_ans = re.sub(r"^\*{0,2}(Direct\s+)?Answer:\*{0,2}\s*", "", direct_ans, flags=re.IGNORECASE).strip()
+            if len(direct_ans) > 20:
+                return direct_ans
         except Exception:
             pass
 
-    # 2. Extract clean informative sentences
+    # 2. Extract clean informative sentences if Direct Answer is not present
     clean_sentences = []
     seen_text = set()
 
@@ -196,11 +197,20 @@ def clean_search_synthesis(query: str, search_data: str) -> str:
         if line_str.startswith("Snippet:") or line_str.startswith("Summary:"):
             line_str = line_str.replace("Snippet: ", "").replace("Summary: ", "").strip()
 
+        line_str = re.sub(r"^#{1,6}\s*", "", line_str).strip()
         line_str = re.sub(r"^\*{0,2}(Direct\s+)?Answer:\*{0,2}\s*", "", line_str, flags=re.IGNORECASE).strip()
         line_str = re.sub(r"\[\d+\]", "", line_str)
         line_str = re.sub(r"\[\s*citation needed\s*\]", "", line_str, flags=re.IGNORECASE)
         line_str = re.sub(r"\[\s*\|\s*\]", "", line_str)
         line_str = re.sub(r"\|", "", line_str).strip()
+
+        # Skip question headings like "What is LLM?" or "## What are LLMs?"
+        if line_str.lower().startswith("what is") or line_str.lower().startswith("what are") or line_str.endswith("?"):
+            parts = line_str.split("?")
+            if len(parts) > 1 and len(parts[1].strip()) > 20:
+                line_str = parts[1].strip()
+            else:
+                continue
 
         if len(line_str) > 25 and is_english_text(line_str):
             key = line_str.lower()[:35]
@@ -208,30 +218,13 @@ def clean_search_synthesis(query: str, search_data: str) -> str:
                 seen_text.add(key)
                 clean_sentences.append(line_str)
 
-    # 3. Assemble clean natural response (paragraphs, NO artificial headers, NO bullet point dumps)
-    paragraphs = []
-    if direct_ans and len(direct_ans) > 10:
-        paragraphs.append(direct_ans)
-
     if clean_sentences:
-        additional = []
-        for s in clean_sentences:
-            if not direct_ans or (s.lower()[:30] not in direct_ans.lower()):
-                additional.append(s)
-            if len(additional) >= 3:
-                break
-        if additional:
-            paragraphs.append(" ".join(additional))
-
-    if paragraphs:
-        result = "\n\n".join(paragraphs).strip()
+        result = " ".join(clean_sentences[:3]).strip()
         result = re.sub(r"^\*{0,2}(Direct\s+)?Answer:\*{0,2}\s*", "", result, flags=re.IGNORECASE).strip()
         return result
 
-    if direct_ans:
-        return direct_ans
-
     return cleaned_input[:400]
+
 
 
 
