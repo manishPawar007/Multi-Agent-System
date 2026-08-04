@@ -1,10 +1,9 @@
 import os
+import re
 import requests
 import wikipedia
 import arxiv
-from typing import Optional, Dict, Any, List
 from duckduckgo_search import DDGS
-from bs4 import BeautifulSoup
 from backend.app.utils.logger import logger
 
 def is_english_text(text: str) -> bool:
@@ -148,7 +147,6 @@ def search_github(query: str, max_results: int = 3) -> str:
     except Exception as e:
         return f"GitHub search notice: {e}"
 
-import re
 
 def clean_search_synthesis(query: str, search_data: str) -> str:
     """Parses raw search data (Tavily/DDG/Wiki) and synthesizes a clean, natural, human-readable response.
