@@ -17,19 +17,23 @@ const API_BASE_URL = getApiBaseUrl();
 
 function getAuthToken() {
   if (typeof window !== "undefined") {
-    return localStorage.getItem("token");
+    // sessionStorage clears automatically when browser/tab is closed → auto logout
+    return sessionStorage.getItem("token");
   }
   return null;
 }
 
 function setAuthToken(token) {
   if (typeof window !== "undefined") {
-    localStorage.setItem("token", token);
+    sessionStorage.setItem("token", token);
+    // Also clear any old token from localStorage (migration cleanup)
+    localStorage.removeItem("token");
   }
 }
 
 function removeAuthToken() {
   if (typeof window !== "undefined") {
+    sessionStorage.removeItem("token");
     localStorage.removeItem("token");
   }
 }

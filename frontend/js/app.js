@@ -60,31 +60,37 @@ window.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("hashchange", handleRoute);
 });
 
-async function initApp() {
+async function initApp(forceRedirect = false) {
   const token = window.getAuthToken();
   const currentHash = window.location.hash || "#dashboard";
 
   if (!token) {
     currentUser = null;
+    // Only redirect to login if user is not already on a public page
     if (!currentHash.includes("login") && !currentHash.includes("register")) {
       window.location.hash = "#login";
       return;
     }
-  } else {
-    try {
-      currentUser = await window.api.getMe();
-      if (currentHash.includes("login") || currentHash.includes("register")) {
-        window.location.hash = "#dashboard";
-        return;
-      }
-    } catch (err) {
-      window.removeAuthToken();
-      currentUser = null;
-      if (!currentHash.includes("login") && !currentHash.includes("register")) {
-        window.location.hash = "#login";
-        return;
-      }
+    handleRoute();
+    return;
+  }
+
+  try {
+    currentUser = await window.api.getMe();
+    // Only redirect logged-in users away from login/register if forced (e.g. after successful login)
+    if (forceRedirect && (currentHash.includes("login") || currentHash.includes("register"))) {
+      window.location.hash = "#dashboard";
+      return;
     }
+  } catch (err) {
+    window.removeAuthToken();
+    currentUser = null;
+    if (!currentHash.includes("login") && !currentHash.includes("register")) {
+      window.location.hash = "#login";
+      return;
+    }
+    handleRoute();
+    return;
   }
 
   loadStats();
@@ -111,15 +117,22 @@ function attachAuthFormListeners() {
       if (resp.access_token) {
         window.setAuthToken(resp.access_token);
         currentUser = resp.user || await window.api.getMe();
-        if (errorEl) errorEl.innerHTML = `<div class="p-3 rounded-xl bg-accent-emerald/10 border border-accent-emerald/30 text-accent-emerald text-xs font-semibold">Logged in successfully! Redirecting...</div>`;
+        // Store login history in localStorage
+        storeLoginHistory(currentUser);
+        if (errorEl) errorEl.innerHTML = `<div class="p-3 rounded-xl bg-accent-emerald/10 border border-accent-emerald/30 text-accent-emerald text-xs font-semibold">✓ Login successful! Loading your workspace...</div>`;
         setTimeout(() => {
+          // Reset all chat state for fresh user session
+          currentChatId = null;
+          currentChat = null;
+          chatMessages = [];
           window.location.hash = "#dashboard";
-          initApp();
-        }, 500);
+          loadStats();
+          handleRoute();
+        }, 600);
       }
     } catch (err) {
       if (errorEl) {
-        errorEl.innerHTML = `<div class="p-3 rounded-xl bg-accent-rose/10 border border-accent-rose/30 text-accent-rose text-xs font-semibold">${err.message || 'Invalid email or password'}</div>`;
+        errorEl.innerHTML = `<div class="p-3 rounded-xl bg-accent-rose/10 border border-accent-rose/30 text-accent-rose text-xs font-semibold">✗ ${err.message || 'Invalid email or password. Please check your credentials.'}</div>`;
       }
     }
   });
@@ -142,20 +155,25 @@ function attachAuthFormListeners() {
     try {
       await window.api.register({ email, password, full_name: username });
       if (statusEl) {
-        statusEl.innerHTML = `<div class="p-3 rounded-xl bg-accent-emerald/10 border border-accent-emerald/30 text-accent-emerald text-xs font-semibold">Account created! Signing in...</div>`;
+        statusEl.innerHTML = `<div class="p-3 rounded-xl bg-accent-emerald/10 border border-accent-emerald/30 text-accent-emerald text-xs font-semibold">✓ Account created! Signing in...</div>`;
       }
       const loginResp = await window.api.login({ email, password });
       if (loginResp.access_token) {
         window.setAuthToken(loginResp.access_token);
         currentUser = loginResp.user || await window.api.getMe();
+        storeLoginHistory(currentUser);
         setTimeout(() => {
+          currentChatId = null;
+          currentChat = null;
+          chatMessages = [];
           window.location.hash = "#dashboard";
-          initApp();
-        }, 500);
+          loadStats();
+          handleRoute();
+        }, 600);
       }
     } catch (err) {
       if (statusEl) {
-        statusEl.innerHTML = `<div class="p-3 rounded-xl bg-accent-rose/10 border border-accent-rose/30 text-accent-rose text-xs font-semibold">${err.message || 'Registration failed'}</div>`;
+        statusEl.innerHTML = `<div class="p-3 rounded-xl bg-accent-rose/10 border border-accent-rose/30 text-accent-rose text-xs font-semibold">✗ ${err.message || 'Registration failed. Try a different email.'}</div>`;
       }
     }
   });
@@ -169,15 +187,51 @@ function attachAuthFormListeners() {
       if (resp.access_token) {
         window.setAuthToken(resp.access_token);
         currentUser = resp.user || await window.api.getMe();
+        storeLoginHistory(currentUser);
+        currentChatId = null;
+        currentChat = null;
+        chatMessages = [];
         window.location.hash = "#dashboard";
-        initApp();
+        loadStats();
+        handleRoute();
       }
     } catch (err) {
       currentUser = { id: "guest-user", email: "guest@omniagent.ai", full_name: "Guest User", role: "User" };
+      currentChatId = null;
+      currentChat = null;
+      chatMessages = [];
       window.location.hash = "#dashboard";
-      initApp();
+      loadStats();
+      handleRoute();
     }
   });
+}
+
+// Login History Manager
+function storeLoginHistory(user) {
+  if (!user) return;
+  try {
+    const history = JSON.parse(localStorage.getItem("loginHistory") || "[]");
+    // Remove existing entry for this email
+    const filtered = history.filter(h => h.email !== user.email);
+    // Add new entry at front
+    filtered.unshift({
+      email: user.email,
+      full_name: user.full_name || user.email.split("@")[0],
+      last_login: new Date().toISOString(),
+      id: user.id
+    });
+    // Keep only last 5 accounts
+    localStorage.setItem("loginHistory", JSON.stringify(filtered.slice(0, 5)));
+  } catch (e) {}
+}
+
+function getLoginHistory() {
+  try {
+    return JSON.parse(localStorage.getItem("loginHistory") || "[]");
+  } catch (e) {
+    return [];
+  }
 }
 
 async function loadStats() {
@@ -218,6 +272,7 @@ function handleRoute() {
 
   if (hash.startsWith("#login")) {
     document.getElementById("view-login")?.classList.add("active");
+    renderLoginHistory();
   } else if (hash.startsWith("#register")) {
     document.getElementById("view-register")?.classList.add("active");
   } else if (hash.startsWith("#chat")) {
@@ -240,6 +295,56 @@ function handleRoute() {
     initDashboardView();
   }
 }
+
+// Render Login History on Login Page
+function renderLoginHistory() {
+  const history = getLoginHistory();
+  const section = document.getElementById("login-history-section");
+  const list = document.getElementById("login-history-list");
+  if (!section || !list) return;
+
+  if (history.length === 0) {
+    section.classList.add("hidden");
+    return;
+  }
+
+  section.classList.remove("hidden");
+  list.innerHTML = history.map(h => {
+    const initial = (h.full_name || h.email || "U")[0].toUpperCase();
+    const name = h.full_name || h.email.split("@")[0];
+    const lastLogin = h.last_login ? new Date(h.last_login).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+    return `
+      <button class="btn-history-login w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-cardLight/60 hover:bg-cardLight border border-border/60 hover:border-primary-500/40 transition-all text-left group cursor-pointer" data-email="${h.email}">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary-600 to-accent-purple flex items-center justify-center text-white font-bold text-sm shrink-0 group-hover:scale-105 transition-transform">
+          ${initial}
+        </div>
+        <div class="flex-1 truncate">
+          <div class="text-xs font-semibold text-gray-200 group-hover:text-white truncate">${name}</div>
+          <div class="text-[10px] text-gray-400 truncate">${h.email}</div>
+          ${lastLogin ? `<div class="text-[10px] text-gray-500 font-mono">Last: ${lastLogin}</div>` : ""}
+        </div>
+        <div class="text-[10px] text-primary-400 font-semibold shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          Select →
+        </div>
+      </button>
+    `;
+  }).join("");
+
+  // Attach click to pre-fill email
+  list.querySelectorAll(".btn-history-login").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const email = btn.getAttribute("data-email");
+      const emailInput = document.getElementById("login-email");
+      const passInput = document.getElementById("login-password");
+      if (emailInput) {
+        emailInput.value = email;
+        emailInput.focus();
+      }
+      if (passInput) passInput.focus();
+    });
+  });
+}
+
 
 // Navbar Renderer
 function updateNavbar() {
@@ -334,7 +439,12 @@ function updateNavbar() {
   document.getElementById("btn-logout")?.addEventListener("click", () => {
     window.removeAuthToken();
     currentUser = null;
+    currentChatId = null;
+    currentChat = null;
+    chatMessages = [];
+    currentStats = null;
     window.location.hash = "#login";
+    handleRoute();
   });
 }
 
@@ -553,8 +663,13 @@ function openProfileModal() {
   document.getElementById("modal-logout-btn")?.addEventListener("click", () => {
     window.removeAuthToken();
     currentUser = null;
+    currentChatId = null;
+    currentChat = null;
+    chatMessages = [];
+    currentStats = null;
     closeModal();
     window.location.hash = "#login";
+    handleRoute();
   });
 }
 
