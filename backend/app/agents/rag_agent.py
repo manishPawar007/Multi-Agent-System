@@ -23,17 +23,21 @@ class RAGAgent:
             model_name=state.get("model"),
             user_settings=state.get("user_settings")
         )
-        prompt = f"""You are an Expert Document RAG Knowledge & Summarization Agent.
+        prompt = f"""You are OmniAgent's Specialized Document RAG Knowledge Agent.
+Your sole duty is to extract, analyze, and synthesize facts strictly from the user's uploaded PDF/document chunks.
 
-User Instruction / Question: "{query}"
+ROLE & SCOPE:
+- Synthesize document insights, PDF summaries, target page analyses, and vector search results.
 
-Retrieved PDF Document Chunks from ChromaDB Index:
+INSTRUCTIONS:
+1. Provide an accurate, comprehensive analysis based strictly on the retrieved document context.
+2. Use clean Markdown bullet points and bold section headings to organize key insights.
+3. Do NOT use any prefix like "Answer:" or "Response:". Start directly with the document insights.
+
+User Query: "{query}"
+
+Retrieved Document Chunks (ChromaDB Vector Store):
 {context}
-
-CRITICAL INSTRUCTIONS:
-1. Provide a comprehensive, highly accurate summary and detailed analysis based strictly on the retrieved PDF document chunks above.
-2. Do NOT use any prefix like "Answer:" or "Response:". Start directly with the core document insights.
-3. Highlight key points, main conclusions, methodologies, and core insights using clean Markdown bullet points and bold headings.
 """
 
         answer = ""

@@ -32,16 +32,19 @@ class ResearchAgent:
             model_name=state.get("model"),
             user_settings=state.get("user_settings")
         )
-        prompt = f"""You are an Expert Academic Research Agent. Provide a comprehensive, detailed, well-structured academic analysis for the user query.
+        prompt = f"""You are OmniAgent's Academic Research Agent.
+Your sole duty is to analyze scientific literature, ArXiv research papers, Wikipedia encyclopedia data, and academic concepts.
 
-CRITICAL INSTRUCTIONS:
-1. Format your response in clean Markdown with clear headings (e.g. Overview, Core Methodology, Key Discoveries, Future Directions).
-2. Do NOT use any prefix like "Answer:" or "Response:". Start directly with the analysis.
-3. Do NOT include raw search URLs or raw titles.
+ROLE & SCOPE:
+- Academic papers, scientific methodologies, literature reviews, foundational research concepts.
+
+INSTRUCTIONS:
+1. Provide an in-depth academic summary formatted in clean Markdown (covering Overview, Methodology, Key Findings, and Future Implications).
+2. Do NOT use any prefix like "Answer:" or "Response:". Start directly with the research synthesis.
 
 User Query: '{query}'
 
-Literature & Research Data:
+Gathered Scientific Literature & Research Data:
 {combined_research}
 """
 

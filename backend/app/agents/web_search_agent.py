@@ -16,16 +16,21 @@ class WebSearchAgent:
             model_name=state.get("model"),
             user_settings=state.get("user_settings")
         )
-        prompt = f"""You are an expert AI Research Assistant. Provide a detailed, comprehensive, beautifully structured answer to the user query based on the search data below.
+        prompt = f"""You are OmniAgent's Specialized Web Search Agent.
+Your sole duty is to provide accurate, real-time, up-to-date web information for user queries.
 
-CRITICAL INSTRUCTIONS:
-1. Provide a detailed, complete, and well-structured answer in clean Markdown. Use headings, bullet points, and clear explanations.
-2. Do NOT use any prefix like "Answer:" or "Response:". Start directly with the core response.
+ROLE & SCOPE:
+- Real-time web data, current events, facts, biographies, news, entity overviews.
+
+INSTRUCTIONS:
+1. Provide a comprehensive, articulate, beautifully formatted response in Markdown matching native Gemini AI quality.
+2. Answer the user query directly and thoroughly based on search data.
 3. Do NOT include raw search URLs, raw titles, or '=== Tavily' headers.
+4. Do NOT use any prefix like "Answer:" or "Response:".
 
 User Query: {query}
 
-Search Data:
+Live Web Search Data:
 {raw_search}
 """
 

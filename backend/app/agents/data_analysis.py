@@ -19,12 +19,16 @@ class DataAnalysisAgent:
             model_name=state.get("model"),
             user_settings=state.get("user_settings")
         )
-        prompt = f"""You are a Senior Data Analyst AI. Provide a comprehensive, detailed data analysis response in clean Markdown.
+        prompt = f"""You are OmniAgent's Senior Data Analyst AI.
+Your sole duty is to perform mathematical computations, statistical calculations, CSV/Excel data analysis, and tabular summaries.
 
-CRITICAL INSTRUCTIONS:
-1. Format statistical findings, CSV/Excel data trends, and metrics using Markdown tables and bulleted key insights.
-2. Do NOT use any prefix like "Answer:" or "Response:". Start directly with the analysis.
-3. Provide step-by-step mathematical or logical breakdowns.
+ROLE & SCOPE:
+- Mathematical calculations, data trends, statistics, metrics, tables, datasets.
+
+INSTRUCTIONS:
+1. Present data findings, calculations, and metrics using Markdown tables and bulleted key insights.
+2. Include step-by-step mathematical reasoning.
+3. Do NOT use any prefix like "Answer:" or "Response:". Start directly with the data analysis.
 
 Query: {query}
 Calculation Helper Result: {calc_result}

@@ -19,28 +19,39 @@ class SupervisorAgent:
         greetings = {"hi", "hii", "hiii", "hello", "hey", "heyy", "namaste", "hola", "good morning", "good evening", "good afternoon", "wassup", "what's up", "hy", "hyy"}
 
         plan = []
-        is_rag_query = bool(doc_id) or any(w in query for w in ["rag", "document", "file", "index", "vector", "stored", "uploaded", "summary", "summarize", "summerize", "summarise", "summery", "pdf", "docx", "excel", "report"])
+
+        # RAG is triggered ONLY if a specific document is selected in UI or query explicitly asks about uploaded pdf/file
+        is_rag_query = bool(doc_id) or any(w in query for w in ["uploaded pdf", "my pdf", "uploaded file", "target document", "this pdf", "in the pdf", "uploaded document", "chromadb"])
 
         if query in greetings or any(query.startswith(g) for g in ["hi ", "hii ", "hello ", "hey ", "namaste "]):
             plan = []
         elif is_rag_query:
             plan = ["rag_agent"]
         else:
-            if any(w in query for w in ["research", "arxiv", "paper", "study", "wikipedia", "journal", "academic"]):
-                plan.append("research_agent")
-            if any(w in query for w in ["parse", "pdf", "excel", "ocr", "metadata", "extract"]):
-                plan.append("document_agent")
-            if any(w in query for w in ["code", "python", "java", "javascript", "sql", "bug", "html", "css", "refactor", "script", "function", "program"]):
+            # 1. Code Agent (software engineering, programming, debugging)
+            if any(w in query for w in ["code", "python", "java", "javascript", "js", "sql", "bug", "html", "css", "refactor", "script", "function", "program", "algorithm", "compiler", "api endpoint"]):
                 plan.append("code_agent")
-            if any(w in query for w in ["csv", "data", "chart", "statistics", "trend", "dataframe", "table", "mean", "sum", "math", "calculate"]):
+
+            # 2. Data Analysis & Math Agent (calculations, statistics, tables, CSV)
+            if any(w in query for w in ["csv", "excel", "chart", "statistics", "trend", "dataframe", "table", "mean", "sum", "math", "calculate", "percentage", "+", "*", "/"]):
                 plan.append("data_analysis_agent")
-            if any(w in query for w in ["search", "web", "latest", "news", "duckduckgo", "github", "url", "what is", "who is", "explain", "prime minister", "president", "capital"]):
-                plan.append("web_search_agent")
-            if any(w in query for w in ["memory", "remember", "history", "previous"]):
+
+            # 3. Academic Research Agent (literature, arxiv, papers)
+            if any(w in query for w in ["arxiv", "paper", "scientific study", "journal", "academic literature"]):
+                plan.append("research_agent")
+
+            # 4. Document Parser Agent (OCR, layout parsing, file type capabilities)
+            if any(w in query for w in ["ocr", "parse pdf", "extract text from image", "metadata extraction"]):
+                plan.append("document_agent")
+
+            # 5. Memory Agent (chat history recall)
+            if any(w in query for w in ["remember", "history", "previous chat", "what did i ask"]):
                 plan.append("memory_agent")
 
-            if not plan:
-                plan = ["web_search_agent"]
+            # 6. Web Search Agent (Default for factual, informational, news, general knowledge, who/what/where/when/why queries)
+            if not plan or any(w in query for w in ["search", "web", "latest", "news", "who is", "what is", "where is", "when did", "explain", "prime minister", "president", "capital", "weather"]):
+                if "web_search_agent" not in plan:
+                    plan.append("web_search_agent")
 
         state["execution_plan"] = plan
         state["current_agent"] = plan[0] if plan else "supervisor"
@@ -64,7 +75,7 @@ class SupervisorAgent:
 
         context = "\n\n".join(collected_info) if collected_info else "No sub-agent insights required."
 
-        prompt = f"""You are the Lead Supervisor AI of OmniAgent AI, an advanced LangGraph Multi-Agent Ecosystem.
+        prompt = f"""You are the Lead Supervisor AI of OmniAgent AI, orchestrating a team of specialized AI agents.
 
 User Query: "{query}"
 
@@ -72,10 +83,10 @@ Sub-Agent Insights & Execution Data:
 {context}
 
 CRITICAL RESPONSE GUIDELINES:
-1. Synthesize a comprehensive, detailed, beautifully structured response in clean Markdown.
-2. Use clear section headings, key points, and bullet points to provide an in-depth answer.
+1. Synthesize a comprehensive, articulate, beautifully structured response in clean Markdown matching native Gemini AI quality.
+2. Provide a thorough, complete explanation matching the depth of the user query.
 3. Do NOT use any prefix like "Answer:" or "Response:". Start directly with the core information.
-4. Do NOT output raw search URLs, titles, or '=== Tavily' headers.
+4. Do NOT output raw search URLs, raw titles, or '=== Tavily' headers.
 
 Synthesize the final answer for the user:"""
 
@@ -111,4 +122,5 @@ Synthesize the final answer for the user:"""
             state["final_response"] = re.sub(r"^\*{0,2}(Direct\s+)?Answer:\*{0,2}\s*", "", state["final_response"], flags=re.IGNORECASE).strip()
 
         return state
+
 
