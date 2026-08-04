@@ -38,9 +38,7 @@ def get_gemini_model(
 
         def invoke(self, prompt: str) -> Any:
             if not self.api_key:
-                class MissingKeyObj:
-                    content = f"[Gemini Provider]: API Key missing. Please configure GEMINI_API_KEY in Settings."
-                return MissingKeyObj()
+                raise ValueError("GEMINI_API_KEY is not configured")
 
             try:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self.api_key}"
@@ -57,17 +55,17 @@ def get_gemini_model(
                         parts = candidates[0]["content"].get("parts", [])
                         if parts:
                             text = parts[0].get("text", "")
-                    class ResponseObj:
-                        content = text or "No text generated."
-                    return ResponseObj()
+                    if text:
+                        class ResponseObj:
+                            content = text
+                        return ResponseObj()
+                    raise ValueError("Empty output text from Gemini API")
                 else:
-                    class ErrorObj:
-                        content = f"[Gemini API Error {res.status_code}]: {res.text}"
-                    return ErrorObj()
+                    logger.error(f"Gemini API HTTP Error {res.status_code}: {res.text}")
+                    raise ValueError(f"Gemini API error {res.status_code}")
             except Exception as ex:
                 logger.error(f"Gemini API connection error: {ex}")
-                class LocalMockObj:
-                    content = f"[Gemini Model Response ({self.model_name})]: Processing complete."
-                return LocalMockObj()
+                raise ex
 
     return DirectGeminiLLM(model, key, temperature)
+

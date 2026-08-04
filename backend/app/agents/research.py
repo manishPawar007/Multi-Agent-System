@@ -1,5 +1,6 @@
+import re
 from backend.app.graph.state import AgentState
-from backend.app.tools.search_tools import search_wikipedia, search_arxiv, search_duckduckgo
+from backend.app.tools.search_tools import search_wikipedia, search_arxiv, search_duckduckgo, clean_search_synthesis
 from backend.app.llm.provider_factory import LLMProviderFactory
 from backend.app.utils.logger import logger
 
@@ -31,30 +32,39 @@ class ResearchAgent:
             model_name=state.get("model"),
             user_settings=state.get("user_settings")
         )
-        prompt = f"""You are an Expert Academic Research Agent.
+        prompt = f"""You are an Expert Academic Research Agent. Provide a comprehensive, detailed, well-structured academic analysis for the user query.
+
+CRITICAL INSTRUCTIONS:
+1. Format your response in clean Markdown with clear headings (e.g. Overview, Core Methodology, Key Discoveries, Future Directions).
+2. Do NOT use any prefix like "Answer:" or "Response:". Start directly with the analysis.
+3. Do NOT include raw search URLs or raw titles.
+
 User Query: '{query}'
 
-Gathered Search & Literature Results:
+Literature & Research Data:
 {combined_research}
+"""
 
-Instructions:
-Synthesize a comprehensive, highly detailed academic summary covering:
-- Key Research Concepts & Problem Statement
-- Methodology & Technical Breakthroughs
-- Important Findings & Performance Impact
-- Future Implications
-
-If specific papers were not named by the user, summarize foundational landmark research papers in the relevant AI/CS domain (e.g. Attention Is All You Need, Transformer Models, LLM Innovations)."""
-
+        summary_text = ""
         try:
             summary = llm.invoke(prompt)
-            summary_text = summary.content if hasattr(summary, 'content') else str(summary)
+            text = summary.content if hasattr(summary, 'content') else str(summary)
+            if text and len(text.strip()) > 20 and not text.startswith("[Gemini"):
+                summary_text = text.strip()
         except Exception as e:
-            logger.error(f"Research Agent LLM error: {e}")
-            summary_text = combined_research[:1500]
+            logger.error(f"Research Agent LLM notice: {e}")
+
+        # Strip any 'Answer:' prefix
+        if summary_text:
+            summary_text = re.sub(r"^\*{0,2}Answer:\*{0,2}\s*", "", summary_text, flags=re.IGNORECASE).strip()
+
+        # Fallback to clean synthesis if LLM failed
+        if not summary_text or any(m in summary_text for m in ["=== Tavily", "Title:", "URL:", "[Gemini"]):
+            summary_text = clean_search_synthesis(query, combined_research)
 
         if "agent_outputs" not in state or state["agent_outputs"] is None:
             state["agent_outputs"] = {}
 
         state["agent_outputs"]["research_agent"] = summary_text
         return state
+
