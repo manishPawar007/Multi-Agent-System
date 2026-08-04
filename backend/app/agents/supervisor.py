@@ -72,15 +72,17 @@ Sub-Agent Insights & Execution Data:
 {context}
 
 CRITICAL RESPONSE GUIDELINES:
-1. Synthesize a direct, natural, highly intelligent answer tailored specifically to the user query: "{query}".
-2. Do NOT output raw URLs, titles, or '=== Tavily' search headers.
-3. Provide a clean, concise, direct response in Markdown.
+1. Synthesize a comprehensive, detailed, beautifully structured response in clean Markdown.
+2. Use clear section headings, key points, and bullet points to provide an in-depth answer.
+3. Do NOT use any prefix like "Answer:" or "Response:". Start directly with the core information.
+4. Do NOT output raw search URLs, titles, or '=== Tavily' headers.
 
 Synthesize the final answer for the user:"""
 
         try:
             response = llm.invoke(prompt)
             final_text = response.content if hasattr(response, 'content') else str(response)
+            import re
             if (
                 final_text 
                 and len(final_text.strip()) > 20 
@@ -90,7 +92,7 @@ Synthesize the final answer for the user:"""
                 and "API key not valid" not in final_text
                 and not final_text.startswith("=== Tavily")
             ):
-                state["final_response"] = final_text
+                state["final_response"] = re.sub(r"^\*{0,2}Answer:\*{0,2}\s*", "", final_text.strip(), flags=re.IGNORECASE)
             elif agent_outputs:
                 output = list(agent_outputs.values())[-1]
                 state["final_response"] = clean_search_synthesis(query, output)
@@ -103,6 +105,10 @@ Synthesize the final answer for the user:"""
                 state["final_response"] = clean_search_synthesis(query, output)
             else:
                 state["final_response"] = generate_fallback_knowledge_response(query, model)
+
+        import re
+        if state.get("final_response"):
+            state["final_response"] = re.sub(r"^\*{0,2}Answer:\*{0,2}\s*", "", state["final_response"], flags=re.IGNORECASE).strip()
 
         return state
 

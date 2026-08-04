@@ -16,9 +16,12 @@ class WebSearchAgent:
             model_name=state.get("model"),
             user_settings=state.get("user_settings")
         )
-        prompt = f"""You are an AI Search Summarizer. Provide a direct, concise, well-formatted answer to the user query based on the search data below.
+        prompt = f"""You are an expert AI Research Assistant. Provide a detailed, comprehensive, beautifully structured answer to the user query based on the search data below.
 
-DO NOT dump raw search URLs, titles, or '=== Tavily' headers. Answer the query directly in clean Markdown.
+CRITICAL INSTRUCTIONS:
+1. Provide a detailed, complete, and well-structured answer in clean Markdown. Use headings, bullet points, and clear explanations.
+2. Do NOT use any prefix like "Answer:" or "Response:". Start directly with the core response.
+3. Do NOT include raw search URLs, raw titles, or '=== Tavily' headers.
 
 User Query: {query}
 
@@ -34,6 +37,10 @@ Search Data:
                 summary = text.strip()
         except Exception as e:
             logger.warning(f"Web Search Agent LLM invocation notice: {e}")
+
+        import re
+        if summary:
+            summary = re.sub(r"^\*{0,2}Answer:\*{0,2}\s*", "", summary, flags=re.IGNORECASE).strip()
 
         # If LLM failed or returned raw/error text, synthesize cleanly using fallback extractor!
         if not summary or any(marker in summary for marker in ["=== Tavily", "=== Live Web", "Title:", "URL:", "Snippet:", "Relevance:", "[Gemini"]):

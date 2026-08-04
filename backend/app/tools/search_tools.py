@@ -151,27 +151,30 @@ def search_github(query: str, max_results: int = 3) -> str:
 import re
 
 def clean_search_synthesis(query: str, search_data: str) -> str:
-    """Parses raw search data (Tavily/DDG/Wiki) and synthesizes a clean, direct, human-readable answer.
+    """Parses raw search data (Tavily/DDG/Wiki) and synthesizes a clean, detailed, beautifully structured response.
     Strips raw headers, URLs, relevance scores, and metadata noise.
+    No '**Answer:**' keyword prefix.
     """
     if not search_data or not isinstance(search_data, str):
-        return f"No search data available for '{query}'."
+        return f"Information regarding '{query}' is currently unavailable."
 
     # If search_data is already clean (doesn't contain raw search dump markers):
     if not any(marker in search_data for marker in ["=== Tavily", "=== Live Web", "Title:", "URL:", "Snippet:", "Relevance:"]):
-        return search_data.strip()
+        res = search_data.strip()
+        res = re.sub(r"^\*{0,2}Answer:\*{0,2}\s*", "", res, flags=re.IGNORECASE)
+        return res
 
+    direct_ans = ""
     # 1. Look for Direct Answer in Tavily output
     if "Direct Answer:" in search_data:
         try:
             direct_ans = search_data.split("Direct Answer:")[1].split("\n")[0].strip()
-            if len(direct_ans) > 10:
-                return f"**Answer:** {direct_ans}"
         except Exception:
             pass
 
-    # 2. Extract key sentences from snippets
+    # 2. Extract key clean sentences from snippets
     clean_lines = []
+    seen_sentences = set()
     for line in search_data.split("\n"):
         line_str = line.strip()
         # Skip raw metadata lines and Wikipedia/Tavily noise
@@ -191,13 +194,33 @@ def clean_search_synthesis(query: str, search_data: str) -> str:
         line_str = re.sub(r"\[\s*\|\s*\]", "", line_str)
 
         if len(line_str) > 20 and is_english_text(line_str):
-            clean_lines.append(line_str)
+            simplified = line_str.lower()[:40]
+            if simplified not in seen_sentences:
+                seen_sentences.add(simplified)
+                clean_lines.append(line_str)
+
+    # Build detailed response
+    response_parts = []
+
+    if direct_ans:
+        response_parts.append(f"### Overview\n{direct_ans}")
 
     if clean_lines:
-        best_text = " ".join(clean_lines[:3])
-        return f"**Answer:** {best_text}"
+        details_list = [f"* {line}" for line in clean_lines[:6]]
+        if direct_ans:
+            response_parts.append("### Key Details & Context\n" + "\n".join(details_list))
+        else:
+            response_parts.append("### Summary\n" + " ".join(clean_lines[:2]))
+            if len(clean_lines) > 2:
+                response_parts.append("### Key Information\n" + "\n".join([f"* {l}" for l in clean_lines[2:6]]))
 
-    return f"Factual search summary for '{query}': {search_data[:300]}"
+    if response_parts:
+        final_out = "\n\n".join(response_parts)
+        final_out = re.sub(r"^\*{0,2}Answer:\*{0,2}\s*", "", final_out, flags=re.IGNORECASE)
+        return final_out
+
+    return f"Here is the detailed factual information for '{query}':\n\n" + search_data[:400]
+
 
 def multi_free_web_search(query: str) -> str:
     """Orchestrates search — Tavily AI (primary) → DuckDuckGo + Wikipedia (fallback)."""
