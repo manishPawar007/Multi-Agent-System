@@ -17,17 +17,21 @@ class Settings(BaseSettings):
     # Ollama Settings
     OLLAMA_BASE_URL: str = "http://localhost:11434"
 
-    # Default Local LLM & Embedding Settings
-    DEFAULT_LLM_PROVIDER: str = "ollama"
-    DEFAULT_LLM_MODEL: str = "llama3.2:latest"
+    # Default LLM & Embedding Settings
+    DEFAULT_LLM_PROVIDER: str = "gemini"
+    DEFAULT_LLM_MODEL: str = "gemini-1.5-flash"
     DEFAULT_EMBEDDING_MODEL: str = "nomic-embed-text"
     DEFAULT_TEMPERATURE: float = 0.7
     DEFAULT_MAX_TOKENS: int = 2048
     DEFAULT_TOP_P: float = 0.95
 
-    # Optional Fallback Cloud Model (Google Gemini Free API)
-    ENABLE_CLOUD_GEMINI: bool = False
+    # Google Gemini API
+    ENABLE_CLOUD_GEMINI: bool = True
     GEMINI_API_KEY: str = ""
+
+    # Tavily Search API (replaces DuckDuckGo as primary search)
+    TAVILY_API_KEY: str = ""
+    TAVILY_SEARCH_ENABLED: bool = True
 
     # Storage Paths
     BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent.parent

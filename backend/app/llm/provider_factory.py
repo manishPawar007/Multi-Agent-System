@@ -13,21 +13,33 @@ class LLMProviderFactory:
         max_tokens: Optional[int] = None,
         user_settings: Optional[Any] = None
     ) -> Any:
-        prov = (provider or (user_settings.default_provider if user_settings else None) or settings.DEFAULT_LLM_PROVIDER).lower()
-        mod = model_name or (user_settings.default_model if user_settings else None) or settings.DEFAULT_LLM_MODEL
-        temp = temperature if temperature is not None else (user_settings.temperature if user_settings else settings.DEFAULT_TEMPERATURE)
-        tokens = max_tokens if max_tokens is not None else (user_settings.max_tokens if user_settings else settings.DEFAULT_MAX_TOKENS)
+        prov = (provider or (getattr(user_settings, 'default_provider', None) if user_settings else None) or settings.DEFAULT_LLM_PROVIDER).lower()
+        mod = model_name or (getattr(user_settings, 'default_model', None) if user_settings else None) or settings.DEFAULT_LLM_MODEL
+        temp = temperature if temperature is not None else (getattr(user_settings, 'temperature', None) if user_settings else settings.DEFAULT_TEMPERATURE) or settings.DEFAULT_TEMPERATURE
+        tokens = max_tokens if max_tokens is not None else (getattr(user_settings, 'max_tokens', None) if user_settings else settings.DEFAULT_MAX_TOKENS) or settings.DEFAULT_MAX_TOKENS
 
-        logger.info(f"Initializing Free LLM Provider: [{prov}] Model: [{mod}] Temp: [{temp}]")
+        logger.info(f"LLM Provider: [{prov}] Model: [{mod}] Temp: [{temp}]")
 
-        try:
-            if prov == "gemini" and (settings.ENABLE_CLOUD_GEMINI or (user_settings and getattr(user_settings, 'enable_cloud', False))):
-                key = user_settings.gemini_key if user_settings and hasattr(user_settings, 'gemini_key') else settings.GEMINI_API_KEY
-                return get_gemini_model(model_name=mod if "gemini" in mod else "gemini-1.5-flash", temperature=temp, max_tokens=tokens, api_key=key)
+        # --- Gemini (Google) ---
+        if prov == "gemini" or "gemini" in (mod or ""):
+            key = (getattr(user_settings, 'gemini_key', None) if user_settings else None) or settings.GEMINI_API_KEY
+            if key:
+                try:
+                    gemini_model = mod if "gemini" in (mod or "") else "gemini-1.5-flash"
+                    logger.info(f"Using Google Gemini: {gemini_model}")
+                    return get_gemini_model(model_name=gemini_model, temperature=temp, max_tokens=tokens, api_key=key)
+                except Exception as e:
+                    logger.error(f"Gemini init error: {e}. Falling back to Ollama.")
             else:
-                # Default mode is ALWAYS local using Ollama
-                url = user_settings.ollama_url if user_settings and hasattr(user_settings, 'ollama_url') else settings.OLLAMA_BASE_URL
-                return get_ollama_model(model_name=mod, temperature=temp, base_url=url)
+                logger.warning("Gemini selected but GEMINI_API_KEY is not set. Falling back to Ollama.")
+
+        # --- Ollama (local fallback) ---
+        try:
+            url = (getattr(user_settings, 'ollama_url', None) if user_settings else None) or settings.OLLAMA_BASE_URL
+            ollama_model = mod if "gemini" not in (mod or "") else "llama3.2:latest"
+            logger.info(f"Using local Ollama: {ollama_model} @ {url}")
+            return get_ollama_model(model_name=ollama_model, temperature=temp, base_url=url)
         except Exception as e:
-            logger.error(f"Error creating LLM for provider {prov}: {str(e)}. Falling back to local Ollama.")
-            return get_ollama_model(model_name=mod or "qwen3", temperature=temp)
+            logger.error(f"Ollama fallback error: {e}")
+            return get_ollama_model(model_name="llama3.2:latest", temperature=temp)
+

@@ -396,12 +396,16 @@ function updateNavbar() {
         ${getIconSvg("bot", "w-4 h-4 text-accent-cyan")}
         <span class="text-gray-300 font-medium">Model:</span>
         <select id="select-model" class="bg-transparent text-white font-semibold text-xs focus:outline-none cursor-pointer">
-          <option value="llama3.2:latest" class="bg-card text-white">Llama 3.2 (Installed Local)</option>
-          <option value="qwen2.5:latest" class="bg-card text-white">Qwen 2.5 (Local)</option>
-          <option value="llama3:latest" class="bg-card text-white">Llama 3 (Local)</option>
-          <option value="mistral:latest" class="bg-card text-white">Mistral 7B (Local)</option>
-          <option value="gemma2:2b" class="bg-card text-white">Gemma 2B (Local)</option>
-          <option value="gemini-1.5-flash" class="bg-card text-white">Google Gemini (Cloud Free)</option>
+          <optgroup label="── Google Gemini (Cloud) ──" style="color:#818cf8;background:#111827">
+            <option value="gemini-1.5-flash" selected class="bg-card text-white">✨ Gemini 1.5 Flash (Fast)</option>
+            <option value="gemini-1.5-pro" class="bg-card text-white">🧠 Gemini 1.5 Pro (Smart)</option>
+            <option value="gemini-2.0-flash" class="bg-card text-white">⚡ Gemini 2.0 Flash (Latest)</option>
+          </optgroup>
+          <optgroup label="── Local Ollama (Fallback) ──" style="color:#6b7280;background:#111827">
+            <option value="llama3.2:latest" class="bg-card text-white">Llama 3.2 (Local)</option>
+            <option value="qwen2.5:latest" class="bg-card text-white">Qwen 2.5 (Local)</option>
+            <option value="mistral:latest" class="bg-card text-white">Mistral 7B (Local)</option>
+          </optgroup>
         </select>
       </div>
     </div>
