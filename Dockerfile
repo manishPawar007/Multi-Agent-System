@@ -27,7 +27,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application backend & frontend files
 COPY backend /app/backend
 COPY frontend /app/frontend
-COPY .env /app/.env
+# Copy environment template if .env is gitignored
+COPY .env.example /app/.env.example
+RUN cp /app/.env.example /app/.env
 
 # Create persistent storage directories
 RUN mkdir -p /app/backend/uploads /app/backend/chroma_db /app/backend/logs
