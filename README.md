@@ -10,9 +10,10 @@
 [![LangGraph](https://img.shields.io/badge/LangGraph-Multi--Agent-7c3aed.svg?style=for-the-badge&logo=openai&logoColor=white)](https://langchain-ai.github.io/langgraph/)
 [![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector--RAG-orange.svg?style=for-the-badge)](https://www.trychroma.com)
 [![Google Gemini](https://img.shields.io/badge/Google_Gemini-3.6_Flash-4285F4.svg?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev)
+[![Author](https://img.shields.io/badge/Author-Manish_Pawar-black.svg?style=for-the-badge&logo=github)](https://github.com/manishPawar007)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
 
-[Features](#-key-features) • [Architecture](#%EF%B8%8F-system-architecture) • [Sub-Agents](#-sub-agent-team) • [Installation](#-installation--setup) • [API Docs](#-api-endpoints) • [Exporting](#-chat-export-capabilities)
+[Features](#-key-features) • [Architecture](#%EF%B8%8F-system-architecture) • [Sub-Agents](#-sub-agent-team) • [Installation](#-installation--setup) • [API Docs](#-api-endpoints) • [Author](#-author--maintainers)
 
 </div>
 
@@ -229,6 +230,15 @@ Multi-Agent-System/
 ├── README.md                  # Project documentation
 └── requirements.txt           # Python dependencies manifest
 ```
+
+---
+
+## 👤 Author & Maintainers
+
+Developed & Maintained with ❤️ by **Manish Pawar**
+
+- **GitHub**: [@manishPawar007](https://github.com/manishPawar007)
+- **Repository**: [manishPawar007/Multi-Agent-System](https://github.com/manishPawar007/Multi-Agent-System)
 
 ---
 
