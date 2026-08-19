@@ -99,34 +99,89 @@ Combines real-time web indexers with scientific database registries.
 
 ---
 
-## 🏗 System Architecture
+## 🏗 System Architecture & Component Breakdown
+
+### 📊 End-to-End System Pipeline Diagram
 
 ```text
-                                 [ User Query ]
-                                       │
-                                       ▼
-                             [ Frontend Web Interface ]
-                                       │
-                                       ▼
-                             [ FastAPI Backend API ]
-                                       │
-                                       ▼
-                       [ LangGraph Supervisor Orchestrator ]
-                                       │
-         ┌─────────────────────────────┼─────────────────────────────┐
-         ▼                             ▼                             ▼
- [ Web Search Agent ]        [ Document RAG Agent ]         [ Code Agent ]
-         │                             │                             │
-   (Tavily / DDG)             (ChromaDB Vector DB)          (Python REPL Sandbox)
-         │                             │                             │
-         └─────────────────────────────┼─────────────────────────────┘
-                                       │
-                                       ▼
-                      [ Supervisor Response Synthesizer ]
-                                       │
-                                       ▼
-                          [ Final Response to User ]
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                    CLIENT LAYER (SPA WEB UI)                                     │
+│  - Vanilla JS Single Page Application (Glassmorphic Dark Theme)                                  │
+│  - Dynamic Provider Status Badges & Dual-Port Auto Resolution (8000 ↔ 8001)                      │
+│  - Interactive LangGraph Node Visualizer & Real-time Reasoning Logs Drawer                       │
+│  - Chat Export Modules (Export to TXT & Print/PDF Renderer)                                     │
+└────────────────────────────────────────────────┬─────────────────────────────────────────────────┘
+                                                 │ HTTP / REST API (JSON)
+                                                 ▼
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                   FASTAPI BACKEND ROUTER LAYER                                   │
+│  - Middleware: CORS Security, Rate Limiter (120 req/min), Logging Middleware                     │
+│  - Authentication: JWT Access Tokens, Passlib Bcrypt Hashing                                     │
+│  - REST Controllers: /api/v1/auth, /api/v1/chats, /api/v1/documents, /api/v1/agents              │
+└────────────────────────────────────────────────┬─────────────────────────────────────────────────┘
+                                                 │ State Graph Invocation
+                                                 ▼
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                             LANGGRAPH MULTI-AGENT SUPERVISOR ENGINE                              │
+│                                                                                                  │
+│   ┌──────────────────────────────────────────────────────────────────────────────────────────┐   │
+│   │ 1. SUPERVISOR PLANNER: Analyzes query & creates plan: ['web_search', 'code', 'rag']      │   │
+│   └────────────────────────────────────────────┬─────────────────────────────────────────────┘   │
+│                                                │                                                 │
+│        ┌───────────────────────────────────────┼───────────────────────────────────────┐         │
+│        ▼                                       ▼                                       ▼         │
+│  ┌───────────┐                           ┌───────────┐                           ┌───────────┐   │
+│  │Web Search │                           │ Document  │                           │   Code    │   │
+│  │   Agent   │                           │ RAG Agent │                           │   Agent   │   │
+│  └─────┬─────┘                           └─────┬─────┘                           └─────┬─────┘   │
+│        │                                       │                                       │         │
+│        ▼                                       ▼                                       ▼         │
+│  (Tavily / DDG / Wiki)                   (ChromaDB Vector Store)                (Python REPL Sandbox)│
+│        │                                       │                                       │         │
+│        └───────────────────────────────────────┼───────────────────────────────────────┘         │
+│                                                │ Sub-Agent Output Collection                     │
+│                                                ▼                                                 │
+│   ┌──────────────────────────────────────────────────────────────────────────────────────────┐   │
+│   │ 2. SUPERVISOR SYNTHESIZER: Merges agent outputs into unified Markdown answer             │   │
+│   └──────────────────────────────────────────────────────────────────────────────────────────┘   │
+└────────────────────────────────────────────────┬─────────────────────────────────────────────────┘
+                                                 │
+                                                 ▼
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 PERSISTENCE & LLM PROVIDER LAYER                                 │
+│  - Database: Async SQLite (aiosqlite) with SQLAlchemy ORM (Chats, Messages, Docs, Users)        │
+│  - LLM Factory: Google Gemini API (gemini-3.6-flash) & Ollama Local LLMs (LLaMA 3.2, Qwen 2.5)   │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+### 🧱 Architectural Layer Breakdown
+
+1. **User Interface (Presentation Layer)**:
+   - Built as a zero-dependency, ultra-fast Single Page Application (SPA) using HTML5, Vanilla JavaScript (ES6+), and CSS3.
+   - Features modern glassmorphism aesthetics, real-time node execution visualizer, and dynamic status badges that auto-detect model providers and server ports.
+
+2. **API & Security Layer (FastAPI Router)**:
+   - Asynchronous ASGI server endpoints providing JWT authentication, passlib bcrypt password hashing, CORS security, and 120 req/min rate limiting.
+   - Handles static file mounting, multi-part file uploads, and session management.
+
+3. **Orchestration Layer (LangGraph StateGraph)**:
+   - State Graph Engine that controls execution state passing between agents using standard Python dictionaries (`AgentState`).
+   - The Supervisor Agent plans execution pathways dynamically, ensuring optimal resource usage and high response quality.
+
+4. **Execution Nodes (Specialized Sub-Agent Team)**:
+   - **Supervisor Agent**: Plans agent routing and synthesizes output.
+   - **Web Search Agent**: Queries Tavily AI, DuckDuckGo, and Wikipedia.
+   - **Document RAG Agent**: Performs semantic vector searches in ChromaDB.
+   - **Code Agent**: Generates, refactors, and evaluates code via Python REPL.
+   - **Research Agent**: Fetches arXiv papers and literature summaries.
+   - **Data Analysis Agent**: Performs math and tabular analytics.
+   - **Document Parser**: OCR layout parser for multi-format files.
+   - **Memory Agent**: Session context continuity engine.
+
+5. **Storage & Provider Layer**:
+   - **Vector Store**: ChromaDB persistent vector database storing document chunk embeddings.
+   - **Relational DB**: SQLite database using async SQLAlchemy ORM.
+   - **LLM Provider Factory**: Universal wrapper supporting Google Gemini API (`gemini-3.6-flash`) and local Ollama server (`http://localhost:11434`).
 
 ---
 
