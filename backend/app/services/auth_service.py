@@ -51,6 +51,14 @@ class AuthService:
         result = await db.execute(select(User).where(User.email == clean_email))
         user = result.scalar_one_or_none()
 
+        # If user does not exist, auto-register them so they can login immediately.
+        # This allows frontends to call login for new users without a separate register step.
+        if not user:
+            try:
+                user = await AuthService.register_user(db, UserRegister(email=clean_email, password=login_data.password))
+            except Exception as e:
+                logger.warning(f"Auto-registration failed for {clean_email}: {e}")
+
         if not user or not verify_password(login_data.password, user.hashed_password):
             raise AuthenticationError("Invalid email or password")
 

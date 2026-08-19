@@ -170,7 +170,7 @@ def clean_search_synthesis(query: str, search_data: str) -> str:
     if not any(marker in search_data for marker in ["=== Tavily", "=== Live Web", "Title:", "URL:", "Snippet:", "Relevance:"]):
         return cleaned_input
 
-    # 1. Look for Direct Answer in Tavily output (best quality concise answer, supports multiline)
+    direct_ans = ""
     if "Direct Answer:" in search_data:
         try:
             part = search_data.split("Direct Answer:")[1]
@@ -179,12 +179,9 @@ def clean_search_synthesis(query: str, search_data: str) -> str:
                     part = part.split(marker)[0]
             direct_ans = part.strip()
             direct_ans = re.sub(r"^\*{0,2}(Direct\s+)?Answer:\*{0,2}\s*", "", direct_ans, flags=re.IGNORECASE).strip()
-            if len(direct_ans) > 20:
-                return direct_ans
         except Exception:
             pass
 
-    # 2. Extract clean informative sentences if Direct Answer is not present
     clean_sentences = []
     seen_text = set()
 
@@ -212,26 +209,24 @@ def clean_search_synthesis(query: str, search_data: str) -> str:
         line_str = re.sub(r"\[\s*\|\s*\]", "", line_str)
         line_str = re.sub(r"\|", "", line_str).strip()
 
-        # Skip question headings like "What is LLM?" or "## What are LLMs?"
-        if line_str.lower().startswith("what is") or line_str.lower().startswith("what are") or line_str.endswith("?"):
-            parts = line_str.split("?")
-            if len(parts) > 1 and len(parts[1].strip()) > 20:
-                line_str = parts[1].strip()
-            else:
-                continue
-
         if len(line_str) > 25 and is_english_text(line_str):
             key = line_str.lower()[:35]
             if key not in seen_text:
                 seen_text.add(key)
                 clean_sentences.append(line_str)
 
-    if clean_sentences:
-        result = " ".join(clean_sentences[:3]).strip()
-        result = re.sub(r"^\*{0,2}(Direct\s+)?Answer:\*{0,2}\s*", "", result, flags=re.IGNORECASE).strip()
-        return result
+    sections = []
+    if direct_ans and len(direct_ans) > 15:
+        sections.append(f"### Overview\n{direct_ans}")
 
-    return cleaned_input[:400]
+    if clean_sentences:
+        bullet_points = "\n".join([f"* {sentence}" for sentence in clean_sentences[:8]])
+        sections.append(f"### Key Concepts & Details\n{bullet_points}")
+
+    if sections:
+        return "\n\n".join(sections)
+
+    return cleaned_input[:1000]
 
 
 

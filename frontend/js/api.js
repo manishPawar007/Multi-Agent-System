@@ -1,23 +1,24 @@
 // Dynamic API Base URL resolution for local and cloud deployments
+let activeApiBaseUrl = null;
+
 function getApiBaseUrl() {
-  if (typeof window !== "undefined" && window.location && window.location.host) {
+  if (activeApiBaseUrl) return activeApiBaseUrl;
+  if (typeof window !== "undefined" && window.location) {
     if (window.location.protocol === "file:") {
       return "http://localhost:8000/api/v1";
     }
     const host = window.location.host;
     if (host.includes("localhost") || host.includes("127.0.0.1")) {
-      return "http://localhost:8000/api/v1";
+      const port = window.location.port || "8000";
+      return `${window.location.protocol}//localhost:${port}/api/v1`;
     }
     return `${window.location.protocol}//${host}/api/v1`;
   }
   return "http://localhost:8000/api/v1";
 }
 
-const API_BASE_URL = getApiBaseUrl();
-
 function getAuthToken() {
   if (typeof window !== "undefined") {
-    // sessionStorage clears automatically when browser/tab is closed → auto logout
     return sessionStorage.getItem("token");
   }
   return null;
@@ -26,7 +27,6 @@ function getAuthToken() {
 function setAuthToken(token) {
   if (typeof window !== "undefined") {
     sessionStorage.setItem("token", token);
-    // Also clear any old token from localStorage (migration cleanup)
     localStorage.removeItem("token");
   }
 }
@@ -38,7 +38,7 @@ function removeAuthToken() {
   }
 }
 
-// Request with automatic retry loop for Render cold-starts & mobile network hiccups
+// Request with automatic retry loop & dual-port detection (8000 <-> 8001)
 async function request(endpoint, options = {}, retries = 3) {
   const token = getAuthToken();
   const headers = {
@@ -53,50 +53,65 @@ async function request(endpoint, options = {}, retries = 3) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
+  let baseUrl = getApiBaseUrl();
+  const candidateUrls = [baseUrl];
+  if (baseUrl.includes(":8000")) {
+    candidateUrls.push(baseUrl.replace(":8000", ":8001"));
+  } else if (baseUrl.includes(":8001")) {
+    candidateUrls.push(baseUrl.replace(":8001", ":8000"));
+  }
+
   let lastError = null;
-  for (let attempt = 0; attempt < retries; attempt++) {
-    try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
-        headers,
-      });
+  for (let candidate of candidateUrls) {
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        const response = await fetch(`${candidate}${endpoint}`, {
+          ...options,
+          headers,
+        });
 
-      if (!response.ok) {
-        if (
-          response.status === 401 &&
-          !endpoint.includes("/auth/login") &&
-          !endpoint.includes("/auth/register")
-        ) {
-          removeAuthToken();
+        if (!response.ok) {
           if (
-            typeof window !== "undefined" &&
-            !window.location.hash.includes("login") &&
-            !window.location.hash.includes("register")
+            response.status === 401 &&
+            !endpoint.includes("/auth/login") &&
+            !endpoint.includes("/auth/register")
           ) {
-            window.location.hash = "#login";
+            removeAuthToken();
+            if (
+              typeof window !== "undefined" &&
+              !window.location.hash.includes("login") &&
+              !window.location.hash.includes("register")
+            ) {
+              window.location.hash = "#login";
+            }
           }
+          const errorData = await response.json().catch(() => ({ detail: "An error occurred" }));
+          let msg = "An error occurred";
+          if (typeof errorData.detail === "string") {
+            msg = errorData.detail;
+          } else if (Array.isArray(errorData.detail) && errorData.detail.length > 0) {
+            msg = errorData.detail[0]?.msg || JSON.stringify(errorData.detail[0]);
+          } else if (errorData.detail) {
+            msg = JSON.stringify(errorData.detail);
+          }
+          throw new Error(msg || `HTTP Error ${response.status}`);
         }
-        const errorData = await response.json().catch(() => ({ detail: "An error occurred" }));
-        let msg = "An error occurred";
-        if (typeof errorData.detail === "string") {
-          msg = errorData.detail;
-        } else if (Array.isArray(errorData.detail) && errorData.detail.length > 0) {
-          msg = errorData.detail[0]?.msg || JSON.stringify(errorData.detail[0]);
-        } else if (errorData.detail) {
-          msg = JSON.stringify(errorData.detail);
-        }
-        throw new Error(msg || `HTTP Error ${response.status}`);
-      }
 
-      return await response.json();
-    } catch (err) {
-      lastError = err;
-      // If it's a fetch network error (e.g. Render waking up from sleep), wait 1.5s and retry
-      if (attempt < retries - 1 && (err.name === "TypeError" || err.message.includes("fetch"))) {
-        await new Promise((r) => setTimeout(r, 1500));
-        continue;
+        // Cache working base URL for subsequent requests
+        activeApiBaseUrl = candidate;
+        return await response.json();
+      } catch (err) {
+        lastError = err;
+        if (err.name === "TypeError" || err.message.includes("fetch") || err.message.includes("Failed to fetch")) {
+          if (attempt < retries - 1) {
+            await new Promise((r) => setTimeout(r, 500));
+            continue;
+          }
+        } else {
+          // Non-fetch error (e.g. 400 Bad Request, 401, 422 validation error) — don't try next port
+          throw err;
+        }
       }
-      throw err;
     }
   }
   throw lastError || new Error("Failed to communicate with server");

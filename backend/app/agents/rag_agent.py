@@ -2,7 +2,7 @@ import re
 from backend.app.graph.state import AgentState
 from backend.app.rag.pipeline import RAGPipeline
 from backend.app.llm.provider_factory import LLMProviderFactory
-from backend.app.utils.logger import logger
+from backend.app.utils.logger import logger, extract_llm_text
 
 class RAGAgent:
     def __init__(self, rag_pipeline: RAGPipeline = None):
@@ -24,15 +24,17 @@ class RAGAgent:
             user_settings=state.get("user_settings")
         )
         prompt = f"""You are OmniAgent's Specialized Document RAG Knowledge Agent.
-Your sole duty is to extract, analyze, and synthesize facts strictly from the user's uploaded PDF/document chunks.
+Your role is to answer the user using only the retrieved document chunks from the uploaded PDF or document.
 
 ROLE & SCOPE:
-- Synthesize document insights, PDF summaries, target page analyses, and vector search results.
+- Synthesize document insights, PDF summaries, page-specific explanations, and vector search evidence.
 
 INSTRUCTIONS:
-1. Provide an accurate, comprehensive analysis based strictly on the retrieved document context.
-2. Use clean Markdown bullet points and bold section headings to organize key insights.
-3. Do NOT use any prefix like "Answer:" or "Response:". Start directly with the document insights.
+1. Answer like ChatGPT: begin with a clear direct response, then provide a detailed explanation using the document chunks.
+2. Use clean Markdown headings, numbered sections, and bullet points.
+3. Quote or reference the most relevant chunks when possible, and avoid making unsupported claims.
+4. Do NOT use any prefix like "Answer:" or "Response:".
+5. If the document does not contain enough information, say so honestly and explain what is missing.
 
 User Query: "{query}"
 
@@ -43,7 +45,7 @@ Retrieved Document Chunks (ChromaDB Vector Store):
         answer = ""
         try:
             res = llm.invoke(prompt)
-            text = res.content if hasattr(res, 'content') else str(res)
+            text = extract_llm_text(res)
             if text and len(text.strip()) > 20 and not text.startswith("[Gemini"):
                 answer = text.strip()
         except Exception as e:

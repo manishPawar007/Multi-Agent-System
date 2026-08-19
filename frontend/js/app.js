@@ -280,6 +280,8 @@ function updateNavbar() {
   const container = document.getElementById("app-header");
   if (!container) return;
 
+  const storedModel = (typeof localStorage !== "undefined" && localStorage.getItem("selected_model")) || "gemini-2.0-flash";
+  const isGeminiActive = storedModel.includes("gemini");
   const ollamaOnline = currentStats?.ollama_status === "online";
   const userInitial = (currentUser?.full_name || currentUser?.email || "U")[0].toUpperCase();
   const userName = currentUser?.full_name || currentUser?.email?.split("@")[0] || "User";
@@ -305,10 +307,10 @@ function updateNavbar() {
     <div class="hidden md:flex items-center gap-3 text-xs">
       <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cardLight/50 border border-border">
         ${getIconSvg("cpu", "w-4 h-4 text-accent-cyan")}
-        <span class="text-gray-300 font-medium">Ollama LLM:</span>
+        <span class="text-gray-300 font-medium">${isGeminiActive ? 'Gemini AI:' : 'Ollama LLM:'}</span>
         <div class="flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full ${ollamaOnline ? 'bg-accent-emerald animate-pulse' : 'bg-accent-amber'}"></span>
-          <span class="text-gray-200 capitalize font-mono text-[11px]">${currentStats?.ollama_status || 'online'}</span>
+          <span class="w-2 h-2 rounded-full bg-accent-emerald animate-pulse"></span>
+          <span class="text-gray-200 capitalize font-mono text-[11px]">${isGeminiActive ? 'Google Cloud' : (currentStats?.ollama_status || 'online')}</span>
         </div>
       </div>
 
@@ -326,14 +328,14 @@ function updateNavbar() {
         <span class="text-gray-300 font-medium">Model:</span>
         <select id="select-model" class="bg-transparent text-white font-semibold text-xs focus:outline-none cursor-pointer">
           <optgroup label="── Google Gemini (Cloud) ──" style="color:#818cf8;background:#111827">
-            <option value="gemini-2.0-flash" selected class="bg-card text-white">⚡ Gemini 2.0 Flash (Recommended)</option>
-            <option value="gemini-1.5-flash" class="bg-card text-white">✨ Gemini 1.5 Flash (Fast)</option>
-            <option value="gemini-1.5-pro" class="bg-card text-white">🧠 Gemini 1.5 Pro (Smart)</option>
+            <option value="gemini-2.0-flash" ${storedModel === 'gemini-2.0-flash' ? 'selected' : ''} class="bg-card text-white">⚡ Gemini 2.0 Flash (Recommended)</option>
+            <option value="gemini-1.5-flash" ${storedModel === 'gemini-1.5-flash' ? 'selected' : ''} class="bg-card text-white">✨ Gemini 1.5 Flash (Fast)</option>
+            <option value="gemini-1.5-pro" ${storedModel === 'gemini-1.5-pro' ? 'selected' : ''} class="bg-card text-white">🧠 Gemini 1.5 Pro (Smart)</option>
           </optgroup>
           <optgroup label="── Local Ollama (Fallback) ──" style="color:#6b7280;background:#111827">
-            <option value="llama3.2:latest" class="bg-card text-white">Llama 3.2 (Local)</option>
-            <option value="qwen2.5:latest" class="bg-card text-white">Qwen 2.5 (Local)</option>
-            <option value="mistral:latest" class="bg-card text-white">Mistral 7B (Local)</option>
+            <option value="llama3.2:latest" ${storedModel === 'llama3.2:latest' ? 'selected' : ''} class="bg-card text-white">Llama 3.2 (Local)</option>
+            <option value="qwen2.5:latest" ${storedModel === 'qwen2.5:latest' ? 'selected' : ''} class="bg-card text-white">Qwen 2.5 (Local)</option>
+            <option value="mistral:latest" ${storedModel === 'mistral:latest' ? 'selected' : ''} class="bg-card text-white">Mistral 7B (Local)</option>
           </optgroup>
         </select>
       </div>
@@ -367,6 +369,15 @@ function updateNavbar() {
       `}
     </div>
   `;
+
+  document.getElementById("select-model")?.addEventListener("change", (e) => {
+    const val = e.target.value;
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem("selected_model", val);
+    }
+    updateNavbar();
+    renderSidebar();
+  });
 
   document.getElementById("btn-profile-trigger")?.addEventListener("click", openProfileModal);
   document.getElementById("btn-logout")?.addEventListener("click", () => {
@@ -474,7 +485,9 @@ async function renderSidebar() {
         <span class="w-2 h-2 rounded-full bg-accent-emerald animate-pulse"></span>
         <span class="font-medium text-gray-200">OmniAgent Engine</span>
       </div>
-      <span class="px-2 py-0.5 rounded-full bg-accent-emerald/10 text-accent-emerald border border-accent-emerald/30 font-mono text-[10px] font-bold">Local Ollama</span>
+      <span class="px-2 py-0.5 rounded-full bg-accent-emerald/10 text-accent-emerald border border-accent-emerald/30 font-mono text-[10px] font-bold">
+        ${((typeof localStorage !== "undefined" && localStorage.getItem("selected_model")) || "gemini-2.0-flash").includes("gemini") ? "Google Gemini" : "Local Ollama"}
+      </span>
     </div>
   `;
 
@@ -836,15 +849,26 @@ function renderChatInterface() {
         ` : chatMessages.map((msg) => renderMessageBubbleHtml(msg)).join("")}
       </div>
 
-      <!-- Document Selector & Input Form -->
+      <!-- Document Selector & Export Toolbar -->
       <div class="shrink-0 mt-2 mb-1">
-        <div class="flex items-center gap-2 mb-2 px-1">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2 px-1">
           <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-card/90 backdrop-blur-md border border-border/80 text-xs text-gray-300 shadow-md">
             ${getIconSvg("fileText", "w-4 h-4 text-accent-emerald")}
             <span class="font-semibold text-gray-300">Target PDF / Document:</span>
             <select id="chat-document-select" class="bg-transparent text-accent-emerald font-bold text-xs focus:outline-none cursor-pointer max-w-xs truncate">
               <option value="" class="bg-card text-white">Search All Uploaded Documents (Global RAG)</option>
             </select>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button id="btn-export-txt" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-card/90 hover:bg-cardLight border border-border/80 text-xs text-gray-300 hover:text-white transition-all shadow-md cursor-pointer" title="Export conversation as Text (.txt)">
+              ${getIconSvg("fileText", "w-3.5 h-3.5 text-accent-cyan")}
+              <span>Export TXT</span>
+            </button>
+            <button id="btn-export-pdf" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-card/90 hover:bg-cardLight border border-border/80 text-xs text-gray-300 hover:text-white transition-all shadow-md cursor-pointer" title="Export conversation as PDF / Print">
+              ${getIconSvg("copy", "w-3.5 h-3.5 text-accent-purple")}
+              <span>Export PDF</span>
+            </button>
           </div>
         </div>
 
@@ -869,6 +893,9 @@ function renderChatInterface() {
     handleSendMessage();
   });
 
+  document.getElementById("btn-export-txt")?.addEventListener("click", exportChatAsTxt);
+  document.getElementById("btn-export-pdf")?.addEventListener("click", exportChatAsPdf);
+
   document.querySelectorAll(".sample-prompt-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const prompt = btn.getAttribute("data-prompt");
@@ -882,6 +909,114 @@ function renderChatInterface() {
 
   attachBubbleListeners();
   scrollToBottom();
+}
+
+function exportChatAsTxt() {
+  if (!chatMessages || chatMessages.length === 0) {
+    alert("No conversation messages to export.");
+    return;
+  }
+
+  const title = currentChat?.title || "OmniAgent AI Conversation";
+  const dateStr = new Date().toLocaleString();
+
+  let text = `=================================================================\n`;
+  text += ` OmniAgent AI - Multi-Agent Conversation Export\n`;
+  text += ` Title: ${title}\n`;
+  text += ` Export Date: ${dateStr}\n`;
+  text += ` Total Messages: ${chatMessages.length}\n`;
+  text += `=================================================================\n\n`;
+
+  chatMessages.forEach((msg, idx) => {
+    const isUser = msg.sender_role === "user";
+    const sender = isUser ? "USER" : "OMNIAGENT AI (Supervisor)";
+    const time = msg.created_at ? new Date(msg.created_at).toLocaleTimeString() : "";
+
+    text += `-----------------------------------------------------------------\n`;
+    text += `[${idx + 1}] ${sender} ${time ? `(${time})` : ""}\n`;
+    text += `-----------------------------------------------------------------\n`;
+    text += `${msg.content || ""}\n\n`;
+  });
+
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `OmniAgent_Chat_${(title.replace(/[^a-z0-9]/gi, '_')).toLowerCase()}_${Date.now()}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportChatAsPdf() {
+  if (!chatMessages || chatMessages.length === 0) {
+    alert("No conversation messages to export.");
+    return;
+  }
+
+  const title = currentChat?.title || "OmniAgent AI Multi-Agent Conversation";
+  const printWin = window.open("", "_blank", "width=900,height=800");
+
+  if (!printWin) {
+    alert("Please allow popups in browser to export PDF.");
+    return;
+  }
+
+  const messagesHtml = chatMessages.map((msg) => {
+    const isUser = msg.sender_role === "user";
+    const sender = isUser ? "You (User)" : "OmniAgent AI (Supervisor)";
+    const timeStr = msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+    const formatted = isUser ? msg.content.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>") : formatMarkdownToHtml(msg.content);
+
+    return `
+      <div style="margin-bottom: 24px; padding: 16px; border-radius: 12px; background: ${isUser ? '#f0f4ff' : '#ffffff'}; border: 1px solid ${isUser ? '#c7d2fe' : '#e5e7eb'};">
+        <div style="font-weight: bold; color: ${isUser ? '#3730a3' : '#047857'}; margin-bottom: 8px; font-size: 13px;">
+          ${sender} ${timeStr ? `<span style="font-weight: normal; color: #6b7280; font-size: 11px; margin-left: 8px;">${timeStr}</span>` : ''}
+        </div>
+        <div style="font-size: 13px; line-height: 1.6; color: #1f2937;">
+          ${formatted}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  printWin.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>${title} - OmniAgent Export</title>
+        <meta charset="utf-8" />
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 30px; color: #111827; background: #fafafa; }
+          .header { border-bottom: 2px solid #4f46e5; padding-bottom: 16px; margin-bottom: 24px; }
+          .header h1 { font-size: 22px; margin: 0 0 6px 0; color: #1e1b4b; }
+          .header p { font-size: 12px; color: #6b7280; margin: 0; }
+          pre { background: #f3f4f6; padding: 12px; border-radius: 8px; overflow-x: auto; font-size: 12px; border: 1px solid #e5e7eb; }
+          code { font-family: monospace; font-size: 12px; }
+          table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+          th, td { border: 1px solid #d1d5db; padding: 8px; text-align: left; }
+          th { background: #f3f4f6; }
+          @media print {
+            body { background: white; padding: 10px; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>⚡ ${title}</h1>
+          <p>OmniAgent AI Multi-Agent Platform • Exported on ${new Date().toLocaleString()}</p>
+        </div>
+        ${messagesHtml}
+        <script>
+          setTimeout(() => {
+            window.print();
+          }, 400);
+        </script>
+      </body>
+    </html>
+  `);
+  printWin.document.close();
 }
 
 // Pure React-identical Message Renderer (Exact React Colors, Alignment & Dimensions)
@@ -1095,8 +1230,8 @@ async function handleSendMessage() {
   isSendingChat = true;
 
   const selectModel = document.getElementById("select-model");
-  const selectedModel = selectModel ? selectModel.value : "llama3.2:latest";
-  const activeProvider = selectedModel === "gemini-1.5-flash" ? "gemini" : "ollama";
+  const selectedModel = selectModel ? selectModel.value : "gemini-2.0-flash";
+  const activeProvider = selectedModel.includes("gemini") ? "gemini" : "ollama";
 
   // Push User Message
   const tempUserMsg = {

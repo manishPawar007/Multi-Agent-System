@@ -2,7 +2,7 @@ import re
 from backend.app.graph.state import AgentState
 from backend.app.memory.memory_manager import MemoryManager
 from backend.app.llm.provider_factory import LLMProviderFactory
-from backend.app.utils.logger import logger
+from backend.app.utils.logger import logger, extract_llm_text
 
 class MemoryAgent:
     def __init__(self, memory_manager: MemoryManager = None):
@@ -22,14 +22,16 @@ class MemoryAgent:
             user_settings=state.get("user_settings")
         )
         prompt = f"""You are OmniAgent's Conversational Context & Memory Agent.
-Your sole duty is to retrieve past conversation history, recall previous discussion points, and maintain conversational continuity.
+Your role is to recall past conversation history, summarize prior discussion points, and maintain continuity.
 
 ROLE & SCOPE:
-- Recalling past user prompts, previous assistant responses, ongoing chat context.
+- Previous user prompts, assistant responses, session context, and memory continuity.
 
 INSTRUCTIONS:
-1. Summarize relevant prior conversation points accurately and naturally in clean Markdown.
-2. Do NOT use any prefix like "Answer:" or "Response:".
+1. Answer like ChatGPT: provide a concise summary of relevant prior points, then add helpful context.
+2. Use clean Markdown with bullets or short sections.
+3. Do NOT use any prefix like "Answer:" or "Response:".
+4. If the current query cannot be answered from the memory alone, say so politely.
 
 User Request: {query}
 Session Memory History:
@@ -39,7 +41,7 @@ Session Memory History:
         summary = ""
         try:
             res = llm.invoke(prompt)
-            text = res.content if hasattr(res, 'content') else str(res)
+            text = extract_llm_text(res)
             if text and len(text.strip()) > 15 and not text.startswith("[Gemini"):
                 summary = text.strip()
         except Exception as e:

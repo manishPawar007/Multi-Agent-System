@@ -2,7 +2,7 @@ import re
 from backend.app.graph.state import AgentState
 from backend.app.tools.python_repl import execute_python_code
 from backend.app.llm.provider_factory import LLMProviderFactory
-from backend.app.utils.logger import logger
+from backend.app.utils.logger import logger, extract_llm_text
 
 def generate_fallback_code(query: str) -> str:
     q_lower = query.lower()
@@ -153,15 +153,17 @@ class CodeAgent:
             user_settings=state.get("user_settings")
         )
         prompt = f"""You are OmniAgent's Senior Software Engineer & Code Agent.
-Your sole duty is to write production-ready code, debug software issues, explain algorithms, and provide technical guidance.
+Your role is to answer like ChatGPT by providing high-quality code, explanations, and best-practice guidance.
 
 ROLE & SCOPE:
-- Python, JavaScript, Java, C++, SQL, HTML/CSS, Frameworks (FastAPI, React), Algorithms, Debugging.
+- Python, JavaScript, Java, C++, SQL, HTML/CSS, frameworks like FastAPI and React, algorithms, debugging.
 
 INSTRUCTIONS:
-1. Provide complete, fully-functional, high-quality code solutions with proper syntax highlighting (e.g. ```python, ```javascript, ```sql).
-2. Explain the code step-by-step with best practices and edge case handling.
-3. Do NOT use any prefix like "Answer:" or "Response:". Start directly with the code solution.
+1. Provide complete, production-ready code snippets with proper syntax highlighting (```python, ```javascript, etc.).
+2. Start with a short summary of what the code does, then explain the approach and edge cases.
+3. Use bullet points and numbered steps when explaining logic.
+4. Do NOT use any prefix like "Answer:" or "Response:."
+5. If the request requires multiple options or improvements, provide the best option plus a brief alternative.
 
 User Request: {query}
 """
@@ -169,7 +171,7 @@ User Request: {query}
         code_response = ""
         try:
             res = llm.invoke(prompt)
-            text = res.content if hasattr(res, 'content') else str(res)
+            text = extract_llm_text(res)
             if text and len(text.strip()) > 15 and not text.startswith("[Gemini"):
                 code_response = text.strip()
         except Exception as e:

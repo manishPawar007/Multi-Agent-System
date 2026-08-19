@@ -15,12 +15,11 @@ def get_gemini_model(
     max_tokens: int = 2048,
     api_key: Optional[str] = None
 ) -> Any:
-    # Auto-map deprecated gemini-1.5 model strings to active gemini-2.0-flash
-    raw_model = model_name or "gemini-2.0-flash"
-    if "1.5" in raw_model or raw_model == "gemini-1.5-flash":
-        model = "gemini-2.0-flash"
+    raw_model = (model_name or "gemini-3.6-flash").lower()
+    if "pro" in raw_model:
+        model = "gemini-3.6-pro"
     else:
-        model = raw_model
+        model = "gemini-3.6-flash"
 
     key = api_key or settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY", "")
 

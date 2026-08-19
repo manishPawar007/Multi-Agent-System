@@ -2,7 +2,7 @@ import re
 from backend.app.graph.state import AgentState
 from backend.app.tools.search_tools import search_wikipedia, search_arxiv, search_duckduckgo, clean_search_synthesis
 from backend.app.llm.provider_factory import LLMProviderFactory
-from backend.app.utils.logger import logger
+from backend.app.utils.logger import logger, extract_llm_text
 
 class ResearchAgent:
     def execute(self, state: AgentState) -> AgentState:
@@ -33,14 +33,17 @@ class ResearchAgent:
             user_settings=state.get("user_settings")
         )
         prompt = f"""You are OmniAgent's Academic Research Agent.
-Your sole duty is to analyze scientific literature, ArXiv research papers, Wikipedia encyclopedia data, and academic concepts.
+Your role is to provide a clear, detailed, and well-structured academic answer based on the research data.
 
 ROLE & SCOPE:
-- Academic papers, scientific methodologies, literature reviews, foundational research concepts.
+- Academic papers, scientific methodologies, literature reviews, experimental findings, and conceptual analysis.
 
 INSTRUCTIONS:
-1. Provide an in-depth academic summary formatted in clean Markdown (covering Overview, Methodology, Key Findings, and Future Implications).
-2. Do NOT use any prefix like "Answer:" or "Response:". Start directly with the research synthesis.
+1. Answer like ChatGPT: start with a concise overview, then provide sections for Methodology, Key Findings, and Implications.
+2. Use clean Markdown headings and bullet points.
+3. Support the summary with evidence from research data, and avoid over-stating what is not supported.
+4. Do NOT use any prefix like "Answer:" or "Response:".
+5. If the available information is not enough for a precise answer, say so and describe what additional data is needed.
 
 User Query: '{query}'
 
@@ -51,7 +54,7 @@ Gathered Scientific Literature & Research Data:
         summary_text = ""
         try:
             summary = llm.invoke(prompt)
-            text = summary.content if hasattr(summary, 'content') else str(summary)
+            text = extract_llm_text(summary)
             if text and len(text.strip()) > 20 and not text.startswith("[Gemini"):
                 summary_text = text.strip()
         except Exception as e:

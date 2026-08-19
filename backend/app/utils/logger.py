@@ -18,3 +18,21 @@ def get_logger(name: str = "omniagent"):
     return logger
 
 logger = get_logger("omniagent")
+
+def extract_llm_text(res) -> str:
+    if not res:
+        return ""
+    if hasattr(res, 'content'):
+        content = res.content
+        if isinstance(content, list):
+            parts = []
+            for item in content:
+                if isinstance(item, dict) and "text" in item:
+                    parts.append(str(item["text"]))
+                elif hasattr(item, "text"):
+                    parts.append(str(item.text))
+                else:
+                    parts.append(str(item))
+            return "".join(parts).strip()
+        return str(content).strip()
+    return str(res).strip()

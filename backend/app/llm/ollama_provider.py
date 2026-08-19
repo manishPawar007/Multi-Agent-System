@@ -181,6 +181,53 @@ Instead of processing tokens sequentially (like RNNs), Transformers compute **at
 * Scales excellently with data and parameters
 * Foundational for GPT, BERT, T5, LLaMA, Gemini, Claude"""
 
+    # 4d-1. ML Lifecycle / Pipeline (Specific process explanation)
+    if any(w in q_lower for w in ["lifecycle", "life cycle", "mlops", "pipeline", "ml process", "stages of ml"]):
+        return """### The Machine Learning (ML) Lifecycle
+
+The **Machine Learning Lifecycle** is an iterative, multi-stage engineering process used to conceptualize, build, evaluate, deploy, and maintain machine learning models in production.
+
+---
+
+### 🚀 Core Stages of the ML Lifecycle
+
+1. **Problem Definition & Business Understanding**
+   * Identify the business objective, metrics of success (e.g., accuracy, latency, ROI), and define whether the task is classification, regression, or clustering.
+
+2. **Data Collection & Ingestion**
+   * Gather raw data from databases, APIs, data lakes, or web scraping.
+   * Ensure data quality, relevance, and ethical compliance.
+
+3. **Data Preprocessing & Cleaning**
+   * Handle missing values, outliers, duplicate records, and noise.
+   * Perform data normalization, scaling, and categorical encoding (One-Hot, Target Encoding).
+
+4. **Exploratory Data Analysis (EDA) & Feature Engineering**
+   * Analyze feature correlations, distributions, and patterns.
+   * Construct domain-specific features to boost model predictive power.
+
+5. **Model Building & Training**
+   * Select candidate algorithms (Decision Trees, XGBoost, Neural Networks, Transformers).
+   * Train models on training sets and perform Hyperparameter Optimization (GridSearch, Optuna).
+
+6. **Model Evaluation & Validation**
+   * Assess model metrics (Precision, Recall, F1-Score, ROC-AUC, RMSE) on unseen test data.
+   * Check for overfitting, underfitting, data leakage, and algorithmic bias.
+
+7. **Deployment & Serving**
+   * Package models into REST APIs (FastAPI, Flask) or containerize using Docker.
+   * Deploy via CI/CD pipelines to cloud servers (AWS, GCP, Render).
+
+8. **Monitoring, Retraining & MLOps**
+   * Continuously monitor model performance, data drift, and concept drift in real time.
+   * Trigger automated retraining when accuracy drops below designated thresholds.
+
+---
+
+### 💡 Key Takeaways
+* The ML lifecycle is **non-linear and iterative** — insights from evaluation often require looping back to feature engineering or data collection.
+* Modern MLOps practices automate tracking, testing, and deployment to keep models reliable in production."""
+
     # 4d. Machine Learning (broad)
     if any(w in q_lower for w in ["machine learning", "ml ", "supervised", "unsupervised", "reinforcement learning"]):
         return """**Machine Learning (ML)** is a branch of AI where systems learn patterns from data to make predictions or decisions **without being explicitly programmed** for each task.
@@ -265,41 +312,7 @@ class SafeOllamaWrapper:
     def invoke(self, prompt: str) -> Any:
         prompt_str = str(prompt)
 
-        # 1. ANTHROPIC CLAUDE 3.5 DOCUMENT ANALYSIS & SUMMARY STYLE
-        if "Retrieved PDF Document Chunks" in prompt_str or "Retrieved Document Chunks" in prompt_str or "[Document Chunk" in prompt_str:
-            chunks_text = prompt_str
-            if "Retrieved PDF Document Chunks from ChromaDB Index:" in prompt_str:
-                chunks_text = prompt_str.split("Retrieved PDF Document Chunks from ChromaDB Index:")[1].split("Instructions:")[0].strip()
-            elif "Retrieved PDF Document Chunks:" in prompt_str:
-                chunks_text = prompt_str.split("Retrieved PDF Document Chunks:")[1].split("Instructions:")[0].strip()
-
-            if chunks_text and "No relevant document context found" not in chunks_text:
-                formatted_sections = []
-                for chunk in chunks_text.split("\n\n"):
-                    chunk_str = chunk.strip()
-                    if chunk_str:
-                        if chunk_str.startswith("[Document Chunk"):
-                            lines = chunk_str.split("\n")
-                            header = lines[0].strip()
-                            body = "\n".join(lines[1:]).strip()
-                            formatted_sections.append(f"**{header}:**\n> {body}")
-                        else:
-                            formatted_sections.append(f"* {chunk_str}")
-
-                extracted_body = "\n\n".join(formatted_sections) if formatted_sections else chunks_text
-
-                class RAGResponseObj:
-                    content = f"""Based on reading the target uploaded PDF document, here is a comprehensive summary and analysis:
-
-**Extracted Key Findings & Document Text:**
-
-{extracted_body}
-
----
-*Retrieved directly from target PDF document chunks in ChromaDB vector store.*"""
-                return RAGResponseObj()
-
-        # 2. Try Base LLM Invoke if instantiated
+        # 1. Try Base LLM Invoke if instantiated
         if self.base_llm is not None:
             try:
                 res = self.base_llm.invoke(prompt)

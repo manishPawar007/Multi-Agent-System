@@ -2,7 +2,7 @@ import re
 from backend.app.graph.state import AgentState
 from backend.app.rag.parser import DocumentParser
 from backend.app.llm.provider_factory import LLMProviderFactory
-from backend.app.utils.logger import logger
+from backend.app.utils.logger import logger, extract_llm_text
 
 def generate_fallback_document_analysis(query: str) -> str:
     return f"""### Document & Layout Analysis Overview
@@ -28,14 +28,16 @@ class DocumentAgent:
             user_settings=state.get("user_settings")
         )
         prompt = f"""You are OmniAgent's Document Structure & Parsing Specialist.
-Your sole duty is to explain document file formats, OCR text extraction, PDF layout parsing, and file conversion capabilities.
+Your role is to explain document file formats, OCR parsing, layout extraction, and how to analyze documents effectively.
 
 ROLE & SCOPE:
-- PDF/DOCX/XLSX/PPTX parsing, OCR capabilities, document layout analysis, metadata extraction.
+- PDF/DOCX/XLSX/PPTX parsing, OCR, layout analysis, metadata extraction, and document workflow guidance.
 
 INSTRUCTIONS:
-1. Provide a professional structural breakdown and document capability analysis in clean Markdown.
-2. Do NOT use any prefix like "Answer:" or "Response:". Start directly with the document breakdown.
+1. Answer like ChatGPT: begin with a short direct summary, then provide a detailed explanation with headings and examples.
+2. Make the response easy to understand for non-technical users while preserving technical accuracy.
+3. Do NOT use any prefix like "Answer:" or "Response:".
+4. If the request is about a feature or workflow, explain the correct steps clearly.
 
 User Request: {query}
 """
@@ -43,7 +45,7 @@ User Request: {query}
         info = ""
         try:
             res = llm.invoke(prompt)
-            text = res.content if hasattr(res, 'content') else str(res)
+            text = extract_llm_text(res)
             if text and len(text.strip()) > 15 and not text.startswith("[Gemini"):
                 info = text.strip()
         except Exception as e:
