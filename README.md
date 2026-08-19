@@ -14,6 +14,7 @@ OmniAgent AI is an enterprise-grade autonomous Multi-Agent AI platform built wit
 - **Code Execution Engine**: Python REPL sandbox for live script execution and polyglot code generation (Python, JS, C++, Java, SQL).
 - **Chat Export (TXT & PDF)**: Export full conversation history with agent insights as plain text or printable PDF.
 - **Dual LLM Provider System**: Supports Google Gemini (Gemini 3.6 Flash / Pro) and local Ollama models with automatic fallback.
+- **Security & Rate Limiting**: Built-in JWT authentication, Bcrypt password hashing, CORS protection, and 120 req/min rate limiter.
 
 ---
 
@@ -32,14 +33,69 @@ OmniAgent AI is an enterprise-grade autonomous Multi-Agent AI platform built wit
 
 ---
 
+## 🔍 Sub-Agent Capabilities & Prompt Engineering
+
+### 1. Supervisor Agent (Planner & Router)
+Analyses incoming user queries to decide whether a single agent or a sequence of sub-agents is required.
+- **Multi-Agent Mode**: If a prompt asks for news and code (e.g. *"Find latest Python 3.13 features and write code"*), it generates plan `['web_search_agent', 'code_agent']`.
+- **Synthesis Engine**: Merges distinct sub-agent responses into a cohesive, structured Markdown answer without raw text duplication.
+
+### 2. Document RAG Agent
+Manages vector document retrieval using ChromaDB.
+- **Chunking Strategy**: Recursive character text splitting with 1000 character chunk size and 200 character overlap.
+- **Semantic Retrieval**: Top-k similarity vector retrieval with source chunk metadata attribution.
+
+### 3. Code Agent & Python REPL Sandbox
+Handles code generation, explanation, and live code testing.
+- **Supported Languages**: Python, JavaScript, TypeScript, C++, Java, SQL, HTML/CSS, Rust.
+- **Execution Sandbox**: Runs Python snippets inside a safe runtime environment to verify code logic before producing outputs.
+
+### 4. Web Search & Academic Research Agents
+Combines real-time web indexers with scientific database registries.
+- **Tavily AI Engine**: Fetches structured web search summaries.
+- **ArXiv API Integration**: Fetches research paper abstracts, author credits, and published dates.
+
+---
+
+## 💡 Example Interactive Use Cases
+
+### Scenario A: Multi-Agent Search & Code Generation
+- **User Query**: *"Search for the latest features introduced in Python 3.13 and write a python script to benchmark them."*
+- **Execution Plan**: `['web_search_agent', 'code_agent']`
+- **Output**: Detailed release summary of Python 3.13 (JIT compiler, free-threaded GIL) followed by an executable benchmark code block.
+
+### Scenario B: PDF Document RAG Query
+- **User Query**: *"Summarize key financial projections from page 3 of the uploaded Q4 report."*
+- **Execution Plan**: `['rag_agent']`
+- **Output**: Extracted semantic vector chunks with page citations and structured bullet point summaries.
+
+### Scenario C: Academic Literature Synthesis
+- **User Query**: *"Find recent ArXiv research papers on Transformer Attention Mechanisms and summarize their findings."*
+- **Execution Plan**: `['research_agent']`
+- **Output**: Literature review summarizing recent ArXiv papers with arXiv paper IDs and publication years.
+
+---
+
 ## 🔄 Multi-Agent Workflow Execution Flow
 
-1. **User Prompt Submission**: The user submits a complex prompt (e.g. *"Search for Python 3.13 features and write a code snippet to test them"*).
-2. **Supervisor Planning**: The Supervisor Agent analyzes the query and constructs an execution plan listing required sub-agents: `['web_search_agent', 'code_agent']`.
-3. **Sub-Agent Execution**:
-   - `web_search_agent` queries Tavily AI & DuckDuckGo for the latest Python 3.13 documentation.
-   - `code_agent` generates and validates the Python script using the Python REPL runner.
-4. **Synthesis & Output**: The Supervisor Agent combines outputs from all executed agents into a unified, expert-level Markdown response.
+```text
+1. User Prompt Submission
+   │
+   ▼
+2. Supervisor Agent Intent Analysis & Planning
+   │
+   ├── [Plan Generated]: ['web_search_agent', 'code_agent']
+   │
+3. Parallel / Sequential Sub-Agent Execution
+   ├── web_search_agent ──> (Queries Tavily AI & DuckDuckGo APIs)
+   └── code_agent       ──> (Generates & validates code via REPL Sandbox)
+   │
+4. Response Synthesis
+   └── Supervisor Agent merges findings into unified Markdown output
+   │
+5. Persistence & Delivery
+   └── Saves message to SQLite & streams rendered response to Web UI
+```
 
 ---
 
@@ -76,18 +132,35 @@ OmniAgent AI is an enterprise-grade autonomous Multi-Agent AI platform built wit
 
 ## 💻 Technical Stack
 
-### Backend & AI Architecture
+### Backend Architecture
 - **Language**: Python 3.10+
 - **Framework**: FastAPI (Asynchronous REST API)
-- **Orchestration**: LangGraph, LangChain Core
-- **LLM Engine**: Google Gemini API (`gemini-3.6-flash`), Ollama (Local LLaMA 3.2 / Qwen 2.5)
-- **Vector Database**: ChromaDB (Persistent Vector Store)
-- **Database**: SQLite with Async SQLAlchemy & aiosqlite
+- **Orchestration Engine**: LangGraph, LangChain Core
+- **LLM Provider Factory**: Google Gemini API (`gemini-3.6-flash`), Ollama (Local LLaMA 3.2 / Qwen 2.5)
+- **Vector Database**: ChromaDB (Persistent Embeddings Store)
+- **Database ORM**: SQLite with Async SQLAlchemy & aiosqlite
+- **Security**: PyJWT, Passlib (Bcrypt hashing), Rate Limiting Middleware
 
-### Frontend & UI
+### Frontend Architecture
 - **Structure**: Single Page Application (HTML5, Vanilla JavaScript ES6+)
-- **Styling**: Glassmorphism dark-theme design system (Vanilla CSS3)
-- **Interactions**: Real-time agent execution visualizer & reasoning log drawer
+- **Design System**: Glassmorphism dark-theme layout (Vanilla CSS3)
+- **Real-Time Visualizer**: Interactive LangGraph execution node inspector & sub-agent drawer
+
+---
+
+## ⚙️ Environment Configuration Matrix
+
+| Variable | Default Value | Required | Description |
+| :--- | :--- | :---: | :--- |
+| `PROJECT_NAME` | `"OmniAgent AI"` | No | Application display title |
+| `ENVIRONMENT` | `"development"` | No | Deployment mode (`development`/`production`) |
+| `DEFAULT_LLM_PROVIDER` | `"gemini"` | Yes | Default provider (`gemini` or `ollama`) |
+| `DEFAULT_LLM_MODEL` | `"gemini-3.6-flash"` | Yes | Selected LLM model string |
+| `GEMINI_API_KEY` | `""` | Yes* | Google Gemini API key (*required for Gemini provider) |
+| `TAVILY_API_KEY` | `""` | No | Tavily search API key (falls back to DDG & Wikipedia) |
+| `DATABASE_URL` | `"sqlite+aiosqlite:///./omniagent.db"` | Yes | Async database connection URL |
+| `SECRET_KEY` | `"supersecretkey"` | Yes | JWT token signing secret key |
+| `OLLAMA_BASE_URL` | `"http://localhost:11434"` | No | Local Ollama server endpoint |
 
 ---
 
@@ -99,15 +172,15 @@ git clone https://github.com/manishPawar007/Multi-Agent-System.git
 cd Multi-Agent-System
 ```
 
-### 2. Environment Configuration
-Create a `.env` file in the root folder with the following configuration:
+### 2. Environment Setup
+Create a `.env` file in the root directory:
 
 ```env
 PROJECT_NAME="OmniAgent AI"
 ENVIRONMENT="development"
 DEBUG=True
 
-# LLM Providers
+# LLM Configurations
 DEFAULT_LLM_PROVIDER="gemini"
 DEFAULT_LLM_MODEL="gemini-3.6-flash"
 GEMINI_API_KEY="your_google_gemini_api_key_here"
@@ -125,7 +198,7 @@ pip install -r requirements.txt
 ```
 
 ### 4. Run Server
-Launch the backend server from the project root:
+Launch the backend server from the root directory:
 ```bash
 python -m uvicorn backend.app.main:app --reload --port 8001
 ```
@@ -134,63 +207,70 @@ Access the application at `http://localhost:8001` or open `frontend/index.html` 
 
 ---
 
-## 🐳 Docker Deployment
+## 🐳 Docker Container Deployment
 
-To run the full platform inside Docker containers:
+To launch the system inside containerized Docker services:
 
 ```bash
-# Build and start services
+# Build and run containers
 docker-compose up --build -d
 
-# View logs
+# Check running container status
+docker-compose ps
+
+# Stream application logs
 docker-compose logs -f
 ```
 
 ---
 
-## 📡 API Endpoints Summary
+## 📡 API Endpoints Specification
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/v1/auth/register` | Register new user account |
-| `POST` | `/api/v1/auth/login` | User login and token authentication |
-| `GET` | `/api/v1/auth/me` | Retrieve user profile information |
-| `GET` | `/api/v1/chats` | List user conversation threads |
-| `POST` | `/api/v1/chats` | Initialize new chat conversation |
-| `POST` | `/api/v1/chats/messages` | Process query through Multi-Agent system |
-| `POST` | `/api/v1/documents/upload` | Upload document & index into ChromaDB |
-| `GET` | `/api/v1/documents` | List uploaded RAG documents |
-| `GET` | `/api/v1/agents` | View status of active sub-agents |
-| `GET` | `/api/v1/dashboard/stats` | View system analytics & model status |
+| Method | Endpoint | Description | Sample Payload |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/auth/register` | Register new user account | `{"email": "user@example.com", "password": "secretpassword"}` |
+| `POST` | `/api/v1/auth/login` | Authenticate & get JWT token | `{"username": "user@example.com", "password": "secretpassword"}` |
+| `GET` | `/api/v1/auth/me` | Fetch active user profile | Header: `Authorization: Bearer <token>` |
+| `GET` | `/api/v1/chats` | List user chat conversations | Header: `Authorization: Bearer <token>` |
+| `POST` | `/api/v1/chats` | Initialize new chat session | `{"title": "Python 3.13 Research"}` |
+| `POST` | `/api/v1/chats/messages` | **Send prompt to Multi-Agent Engine** | `{"chat_id": "...", "content": "Search news and write code"}` |
+| `POST` | `/api/v1/documents/upload` | Upload file & index in ChromaDB | `Multipart FormData (file: document.pdf)` |
+| `GET` | `/api/v1/documents` | List uploaded documents | Returns document metadata & chunk counts |
+| `GET` | `/api/v1/agents` | View status of sub-agents | Returns status array of 8 sub-agents |
+| `GET` | `/api/v1/dashboard/stats` | System analytics & health stats | Returns doc counts, message stats, & provider status |
 
 ---
 
-## 📄 Python Usage Example
+## 📄 Python Programmatic Usage Example
 
-You can invoke the Multi-Agent graph programmatically:
+You can invoke the Multi-Agent engine directly in your Python code:
 
 ```python
 from backend.app.graph.multi_agent_graph import multi_agent_system
 
-result = multi_agent_system.run(
+# Run Multi-Agent Execution Graph
+state = multi_agent_system.run(
     query="Search for recent news on quantum computing and write a python summary",
-    chat_id="demo_session",
-    user_id="user_123",
+    chat_id="demo_session_1",
+    user_id="user_demo",
     provider="gemini",
     model="gemini-3.6-flash"
 )
 
-print("Agents Executed:", result["execution_plan"])
-print("Synthesized Response:\n", result["final_response"])
+# Inspect execution graph output
+print("Execution Plan Created by Supervisor:", state["execution_plan"])
+print("Sub-Agent Outputs Keys:", list(state["agent_outputs"].keys()))
+print("\n--- Final Synthesized Response ---\n")
+print(state["final_response"])
 ```
 
 ---
 
-## 🛠 Troubleshooting Common Issues
+## 🛠 Troubleshooting Common Setup Issues
 
-- **Backend Port Mismatch**: The backend defaults to port `8001`. The frontend includes dual-port auto-detection (`8000` & `8001`) to automatically resolve connection errors.
-- **Gemini API Key 404 Error**: Ensure your `.env` model string uses `gemini-3.6-flash` as deprecated endpoints (`gemini-1.5-flash`) have been sunset by Google.
-- **Ollama Offline**: If using Ollama locally, start the service using `ollama serve` before switching providers.
+- **Backend Port Auto-Detection**: The backend defaults to port `8001`. The frontend contains automatic dual-port detection (`8000` & `8001`) to automatically resolve connection errors when opening `index.html`.
+- **Gemini Model 404 Error**: Ensure your `.env` model string uses `gemini-3.6-flash` as deprecated model endpoints (`gemini-1.5-flash`) have been sunset by Google API.
+- **Ollama Offline Fallback**: If using local Ollama models, ensure the Ollama service is running via `ollama serve` before selecting Ollama models in the frontend dropdown.
 
 ---
 
