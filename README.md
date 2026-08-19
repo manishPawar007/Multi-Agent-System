@@ -1,247 +1,180 @@
-<div align="center">
+# OmniAgent AI — Autonomous Multi-Agent AI System
 
-# ⚡ OmniAgent AI
-
-### Autonomous Multi-Agent AI Orchestration Platform
-*Powered by LangGraph, FastAPI, ChromaDB Vector RAG, Google Gemini 3.6 Flash, and Ollama*
-
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![LangGraph](https://img.shields.io/badge/LangGraph-Multi--Agent-7c3aed.svg?style=for-the-badge&logo=openai&logoColor=white)](https://langchain-ai.github.io/langgraph/)
-[![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector--RAG-orange.svg?style=for-the-badge)](https://www.trychroma.com)
-[![Google Gemini](https://img.shields.io/badge/Google_Gemini-3.6_Flash-4285F4.svg?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev)
-[![Author](https://img.shields.io/badge/Author-Manish_Pawar-black.svg?style=for-the-badge&logo=github)](https://github.com/manishPawar007)
-[![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
-
-[Features](#-key-features) • [Architecture](#%EF%B8%8F-system-architecture) • [Sub-Agents](#-sub-agent-team) • [Installation](#-installation--setup) • [API Docs](#-api-endpoints) • [Author](#-author--maintainers)
-
-</div>
+OmniAgent AI is an enterprise-grade autonomous Multi-Agent AI platform built with Python, FastAPI, LangGraph, ChromaDB Vector RAG, Google Gemini, and Ollama. It automatically orchestrates complex user queries across a team of specialized AI agents—ranging from real-time web search and document RAG to python code execution and academic research.
 
 ---
 
-## 📌 Table of Contents
-- [Overview](#-overview)
-- [Key Features](#-key-features)
-- [Sub-Agent Team](#-sub-agent-team)
-- [System Architecture](#%EF%B8%8F-system-architecture)
-- [Tech Stack](#-tech-stack)
-- [Installation & Setup](#-installation--setup)
-- [Environment Variables](#-environment-variables)
-- [API Endpoints](#-api-endpoints)
-- [Chat Export Capabilities](#-chat-export-capabilities)
-- [Project Structure](#-project-structure)
-- [License](#-license)
+## 🌟 Key Capabilities
+
+- **Autonomous Supervisor Orchestrator**: Dynamically plans, routes, and synthesizes multi-agent execution graphs using LangGraph.
+- **Multi-Agent Delegation**: Executes multi-agent workflows (e.g. Web Search + Code Generation + Data Analytics) in parallel or sequence.
+- **Document Hub & Vector RAG**: Semantic vector retrieval powered by ChromaDB for querying uploaded PDF, DOCX, XLSX, and text documents.
+- **Real-Time Web Search**: Integrated search using Tavily AI, DuckDuckGo, and Wikipedia for up-to-date factual info.
+- **Academic Literature Research**: Direct ArXiv academic paper abstracts and Wikipedia encyclopedia search.
+- **Code Execution Engine**: Python REPL sandbox for live script execution and polyglot code generation (Python, JS, C++, Java, SQL).
+- **Chat Export (TXT & PDF)**: Export full conversation history with agent insights as plain text or printable PDF.
+- **Dual LLM Provider System**: Supports Google Gemini (Gemini 3.6 Flash / Pro) and local Ollama models with automatic fallback.
 
 ---
 
-## 📖 Overview
+## 🤖 Specialized AI Agent Team
 
-**OmniAgent AI** is a production-ready, open-source **Multi-Agent AI Platform** designed to solve complex user tasks through dynamic agent delegation and synthesis. Built using **LangGraph** state-graph flows and **FastAPI**, OmniAgent routes queries across specialized AI agents—ranging from real-time web search and document RAG to python code execution and academic research paper parsing.
-
-Unlike traditional single-prompt chatbots, OmniAgent AI orchestrates **multi-agent pipelines** where multiple specialized agents collaborate on a single prompt, passing context to the Supervisor Agent to produce unified, expert-level Markdown answers.
-
----
-
-## ✨ Key Features
-
-- 🧠 **LangGraph Multi-Agent Engine**: State-graph routing with real-time agent execution visualizer & reasoning logs.
-- ⚡ **Multi-Agent Collaboration**: Simultaneously delegates complex tasks across Web Search, Code Generation, and Data Analytics agents.
-- 📄 **Document RAG Knowledge Hub**: Vector semantic search powered by ChromaDB for querying PDF, DOCX, XLSX, and text documents.
-- 🌐 **Real-time Live Web Search**: Integrates Tavily AI, DuckDuckGo, and Wikipedia APIs for up-to-date real-world factual responses.
-- 🔬 **Academic Paper Research**: Native ArXiv paper abstracts search & Wikipedia encyclopedia synthesis.
-- 💻 **Python Code Execution (REPL)**: Safe sandboxed execution of generated Python scripts for data visualization and math computations.
-- 📤 **Chat Exporting (TXT & PDF)**: Export full agent conversation history into styled `.txt` or printable `.pdf` documents.
-- 🎨 **Modern Glassmorphic UI**: High-end dark theme, responsive sidebar layout, model switcher, and real-time node badges.
-- 🔄 **Dual Provider Support**: Seamless switching between **Google Gemini (3.6 Flash / Pro)** and **Local Ollama**.
+| Agent Name | Role | Capabilities | Primary Tools |
+| :--- | :--- | :--- | :--- |
+| **Supervisor Agent** | Master Orchestrator | Graph planning, multi-agent routing, and insight synthesis | LangGraph, LLM Provider Factory |
+| **Web Search Agent** | Real-time Web Engine | Live news, biographies, current events, and web summaries | Tavily AI, DuckDuckGo, Wikipedia |
+| **Document RAG Agent** | Vector Knowledge QA | Document chunk retrieval, semantic QA, and PDF summaries | ChromaDB, Nomic Embeddings, PDF Parser |
+| **Code Agent** | Software Engineer | Polyglot code generation, refactoring, and script execution | Python REPL, Syntax Formatter |
+| **Research Agent** | Academic Researcher | Scientific papers, methodologies, and literature reviews | ArXiv Registry, Wikipedia API |
+| **Data Analysis Agent** | Data Analyst | Statistical analysis, tabular metrics, and CSV processing | Calculator, Pandas |
+| **Document Parser** | Structure Specialist | Layout parsing, OCR text extraction, and metadata parsing | OCR Engine, PyPDF, Office Parsers |
+| **Memory Agent** | Context Engine | Conversation continuity, short-term memory, & session history | SQLite Database, Async SQLAlchemy |
 
 ---
 
-## 🤖 Sub-Agent Team
+## 🏗 System Architecture
 
-| Agent | Icon | Primary Role | Core Tools & Frameworks |
-| :--- | :---: | :--- | :--- |
-| **Supervisor Agent** | 🧠 | Task Planning, Multi-Agent Delegation, & Synthesis | LangGraph, LLM Provider Factory |
-| **Web Search Agent** | 🌐 | Real-time Web Search, News, & Current Events | Tavily AI, DuckDuckGo, Wikipedia |
-| **Document RAG Agent**| 📄 | Vector Database Querying & PDF Summarization | ChromaDB, Nomic Embeddings, PDF Parser |
-| **Code Agent** | 💻 | Polyglot Code Generation, Refactoring, & Debugging | Python REPL, Syntax Formatter |
-| **Research Agent** | 🔬 | Academic Literature Search & Paper Abstracts | ArXiv API, Wikipedia Search |
-| **Data Analysis Agent**| 📊 | Tabular Data Analytics & Math Computations | Calculator, Pandas, Statistics |
-| **Document Parser** | 📑 | Document Layout Extraction & Metadata Parsing | OCR Engine, PyPDF, Docx Parser |
-| **Memory Agent** | 💾 | Conversational Continuity & SQLite Session History | SQLite, SQLAlchemy Async |
-
----
-
-## 🛠️ System Architecture
-
-```mermaid
-flowchart TD
-    User([👤 User Prompt]) --> UI[🎨 Frontend SPA Web UI]
-    UI --> API[⚡ FastAPI Backend Server]
-    
-    subgraph MultiAgentEngine ["🧠 LangGraph Multi-Agent Orchestrator"]
-        API --> SupervisorPlan[🧠 Supervisor Agent: Planning & Routing]
-        
-        SupervisorPlan --> WebAgent[🌐 Web Search Agent]
-        SupervisorPlan --> RAGAgent[📄 Document RAG Agent]
-        SupervisorPlan --> CodeAgent[💻 Code Agent]
-        SupervisorPlan --> ResearchAgent[🔬 Research Agent]
-        SupervisorPlan --> DataAgent[📊 Data Analysis Agent]
-        
-        WebAgent --> SearchTools[(🌐 Tavily / DDG / Wiki)]
-        RAGAgent --> ChromaDB[(📄 ChromaDB Vector Store)]
-        CodeAgent --> REPL[💻 Python REPL Execution]
-        ResearchAgent --> ArXiv[(🔬 ArXiv Registry)]
-        
-        WebAgent --> SupervisorSynthesize[🧠 Supervisor Agent: Response Synthesis]
-        RAGAgent --> SupervisorSynthesize
-        CodeAgent --> SupervisorSynthesize
-        ResearchAgent --> SupervisorSynthesize
-        DataAgent --> SupervisorSynthesize
-    end
-
-    SupervisorSynthesize --> DB[(💾 SQLite Database)]
-    SupervisorSynthesize --> UI
+```text
+                                 [ User Query ]
+                                       │
+                                       ▼
+                             [ Frontend Web Interface ]
+                                       │
+                                       ▼
+                             [ FastAPI Backend API ]
+                                       │
+                                       ▼
+                       [ LangGraph Supervisor Orchestrator ]
+                                       │
+         ┌─────────────────────────────┼─────────────────────────────┐
+         ▼                             ▼                             ▼
+ [ Web Search Agent ]        [ Document RAG Agent ]         [ Code Agent ]
+         │                             │                             │
+   (Tavily / DDG)             (ChromaDB Vector DB)          (Python REPL Sandbox)
+         │                             │                             │
+         └─────────────────────────────┼─────────────────────────────┘
+                                       │
+                                       ▼
+                      [ Supervisor Response Synthesizer ]
+                                       │
+                                       ▼
+                          [ Final Response to User ]
 ```
 
 ---
 
-## 💻 Tech Stack
+## 💻 Technical Stack
 
-- **Backend Framework**: FastAPI, Pydantic v2, Python 3.10+
-- **Agent Orchestration**: LangGraph, LangChain Core
-- **Vector Database**: ChromaDB (Persistent Embeddings)
-- **LLM Providers**: Google Gemini API (`gemini-3.6-flash`), Ollama (Local LLMs: LLaMA 3.2, Qwen 2.5)
-- **Database**: Async SQLAlchemy, SQLite, aiosqlite
-- **Frontend**: HTML5, Vanilla JavaScript (ES6+), CSS3 (Modern Glassmorphism Design System)
-- **Search & Tools**: Tavily AI, DuckDuckGo Search, ArXiv API, Wikipedia API
+### Backend & AI Architecture
+- **Language**: Python 3.10+
+- **Framework**: FastAPI (Asynchronous REST API)
+- **Orchestration**: LangGraph, LangChain Core
+- **LLM Engine**: Google Gemini API (`gemini-3.6-flash`), Ollama (Local LLaMA 3.2 / Qwen 2.5)
+- **Vector Database**: ChromaDB (Persistent Vector Store)
+- **Database**: SQLite with Async SQLAlchemy & aiosqlite
+
+### Frontend & UI
+- **Structure**: Single Page Application (HTML5, Vanilla JavaScript ES6+)
+- **Styling**: Glassmorphism dark-theme design system (Vanilla CSS3)
+- **Interactions**: Real-time agent execution visualizer & reasoning log drawer
 
 ---
 
-## 🚀 Installation & Setup
+## 🚀 Quick Start Guide
 
-### 1. Clone the Repository
+### 1. Repository Setup
 ```bash
 git clone https://github.com/manishPawar007/Multi-Agent-System.git
 cd Multi-Agent-System
 ```
 
-### 2. Set Up Virtual Environment & Install Dependencies
-```bash
-# Create virtual environment
-python -m venv .venv
-
-# Activate environment (Windows)
-.venv\Scripts\activate
-
-# Activate environment (Linux/macOS)
-source .venv/bin/activate
-
-# Install requirements
-pip install -r requirements.txt
-```
-
-### 3. Environment Variables Configuration
-Create a `.env` file in the project root directory:
+### 2. Environment Configuration
+Create a `.env` file in the root folder with the following configuration:
 
 ```env
 PROJECT_NAME="OmniAgent AI"
 ENVIRONMENT="development"
 DEBUG=True
 
-# LLM Configurations
+# LLM Providers
 DEFAULT_LLM_PROVIDER="gemini"
 DEFAULT_LLM_MODEL="gemini-3.6-flash"
 GEMINI_API_KEY="your_google_gemini_api_key_here"
 TAVILY_API_KEY="your_tavily_api_key_here"
 
-# Database & Storage
+# Database & Security
 DATABASE_URL="sqlite+aiosqlite:///./omniagent.db"
-SECRET_KEY="your_jwt_secret_key_here"
-
-# Ollama Fallback (Optional)
+SECRET_KEY="your_secret_key_here"
 OLLAMA_BASE_URL="http://localhost:11434"
 ```
 
-### 4. Run the Backend API Server
-Start the server from the root directory:
+### 3. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Run Server
+Launch the backend server from the project root:
 ```bash
 python -m uvicorn backend.app.main:app --reload --port 8001
 ```
 
-### 5. Open Web Application
-Open your web browser and navigate to:
-- **Application URL**: `http://localhost:8001` or open `frontend/index.html` directly.
-- **Interactive API Documentation (Swagger)**: `http://localhost:8001/docs`
+Access the application at `http://localhost:8001` or open `frontend/index.html` in your web browser.
 
 ---
 
-## 📡 API Endpoints
+## 📡 API Endpoints Summary
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/api/v1/auth/register` | Register a new user account |
-| `POST` | `/api/v1/auth/login` | Login and retrieve JWT access token |
-| `GET` | `/api/v1/auth/me` | Fetch authenticated user profile details |
-| `GET` | `/api/v1/chats` | List all user chat conversations |
-| `POST` | `/api/v1/chats` | Create a new chat session |
-| `POST` | `/api/v1/chats/messages` | **Send prompt to Multi-Agent Engine & receive response** |
-| `POST` | `/api/v1/documents/upload` | Upload PDF/Office document & generate ChromaDB vector chunks |
-| `GET` | `/api/v1/documents` | List indexed RAG documents |
-| `GET` | `/api/v1/agents` | Fetch active sub-agents status |
-| `GET` | `/api/v1/dashboard/stats` | Retrieve platform metrics and system health |
+| `POST` | `/api/v1/auth/register` | Register new user account |
+| `POST` | `/api/v1/auth/login` | User login and token authentication |
+| `GET` | `/api/v1/auth/me` | Retrieve user profile information |
+| `GET` | `/api/v1/chats` | List user conversation threads |
+| `POST` | `/api/v1/chats` | Initialize new chat conversation |
+| `POST` | `/api/v1/chats/messages` | Process query through Multi-Agent system |
+| `POST` | `/api/v1/documents/upload` | Upload document & index into ChromaDB |
+| `GET` | `/api/v1/documents` | List uploaded RAG documents |
+| `GET` | `/api/v1/agents` | View status of active sub-agents |
+| `GET` | `/api/v1/dashboard/stats` | View system analytics & model status |
 
 ---
 
-## 📥 Chat Export Capabilities
-
-OmniAgent AI supports exporting complete conversation histories directly from the UI:
-- **Export TXT**: Downloads conversation with complete timestamps, user prompts, sub-agent outputs, and metadata as a formatted plain text (`.txt`) file.
-- **Export PDF**: Opens a styled, printable document view that triggers browser PDF print rendering (`window.print()`).
-
----
-
-## 📁 Project Structure
+## 📂 Project Directory Structure
 
 ```text
 Multi-Agent-System/
 ├── backend/
 │   ├── app/
-│   │   ├── agents/            # LangGraph specialized sub-agents
-│   │   ├── api/               # FastAPI route controllers
-│   │   ├── auth/              # JWT auth middleware & password security
-│   │   ├── config/            # Pydantic environment settings
-│   │   ├── database/          # Async SQLite session management
-│   │   ├── graph/             # StateGraph multi-agent execution pipeline
-│   │   ├── llm/               # Gemini 3.6 Flash & Ollama providers
-│   │   ├── models/            # Database ORM entities
-│   │   ├── rag/               # ChromaDB vector store & parsers
-│   │   ├── schemas/           # Pydantic request/response schemas
-│   │   ├── services/          # Business logic services
-│   │   ├── tools/             # Search APIs, Python REPL, & Calculator
-│   │   └── utils/             # Logging & robust LLM text extractors
-│   ├── chroma_db/             # Local ChromaDB persistent vector index
-│   └── uploads/               # Uploaded PDF document storage
+│   │   ├── agents/          # LangGraph specialized sub-agents
+│   │   ├── api/             # FastAPI REST endpoints
+│   │   ├── auth/            # Authentication & JWT security
+│   │   ├── config/          # Environment configuration
+│   │   ├── database/        # Async SQLite session manager
+│   │   ├── graph/           # Multi-agent graph pipeline
+│   │   ├── llm/             # Gemini 3.6 Flash & Ollama providers
+│   │   ├── models/          # Database ORM models
+│   │   ├── rag/             # Vector database & document processing
+│   │   ├── schemas/         # Request & response validation
+│   │   ├── services/        # Service layer logic
+│   │   ├── tools/           # Web search, Python REPL, & calculator tools
+│   │   └── utils/           # Logging & text extraction helpers
+│   ├── chroma_db/           # Persistent vector database storage
+│   └── uploads/             # Uploaded PDF/Office documents
 ├── frontend/
-│   ├── index.html             # Single Page Application HTML
-│   ├── css/                   # Modern glassmorphism dark theme styles
-│   └── js/                    # SPA router, API client, & chat UI controllers
-├── docker-compose.yml         # Container orchestration manifest
-├── Dockerfile                 # Production Docker container build
-├── README.md                  # Project documentation
-└── requirements.txt           # Python dependencies manifest
+│   ├── index.html           # Main user interface
+│   ├── css/                 # Glassmorphic styles
+│   └── js/                  # App controllers & API client
+├── docker-compose.yml       # Docker deployment configuration
+├── Dockerfile               # Production build manifest
+├── README.md                # Project documentation
+└── requirements.txt         # Python dependencies
 ```
 
 ---
 
-## 👤 Author & Maintainers
+## 👤 Author & License
 
-Developed & Maintained with ❤️ by **Manish Pawar**
-
-- **GitHub**: [@manishPawar007](https://github.com/manishPawar007)
-- **Repository**: [manishPawar007/Multi-Agent-System](https://github.com/manishPawar007/Multi-Agent-System)
-
----
-
-## 📜 License
-
-This project is licensed under the **MIT License**. Feel free to use, modify, and distribute it for personal or commercial applications.
+- **Developer**: Manish Pawar (manishPawar007)
+- **Repository**: Multi-Agent-System
+- **License**: MIT License
