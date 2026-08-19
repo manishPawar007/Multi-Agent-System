@@ -32,6 +32,17 @@ OmniAgent AI is an enterprise-grade autonomous Multi-Agent AI platform built wit
 
 ---
 
+## 🔄 Multi-Agent Workflow Execution Flow
+
+1. **User Prompt Submission**: The user submits a complex prompt (e.g. *"Search for Python 3.13 features and write a code snippet to test them"*).
+2. **Supervisor Planning**: The Supervisor Agent analyzes the query and constructs an execution plan listing required sub-agents: `['web_search_agent', 'code_agent']`.
+3. **Sub-Agent Execution**:
+   - `web_search_agent` queries Tavily AI & DuckDuckGo for the latest Python 3.13 documentation.
+   - `code_agent` generates and validates the Python script using the Python REPL runner.
+4. **Synthesis & Output**: The Supervisor Agent combines outputs from all executed agents into a unified, expert-level Markdown response.
+
+---
+
 ## 🏗 System Architecture
 
 ```text
@@ -123,6 +134,20 @@ Access the application at `http://localhost:8001` or open `frontend/index.html` 
 
 ---
 
+## 🐳 Docker Deployment
+
+To run the full platform inside Docker containers:
+
+```bash
+# Build and start services
+docker-compose up --build -d
+
+# View logs
+docker-compose logs -f
+```
+
+---
+
 ## 📡 API Endpoints Summary
 
 | Method | Endpoint | Description |
@@ -137,6 +162,35 @@ Access the application at `http://localhost:8001` or open `frontend/index.html` 
 | `GET` | `/api/v1/documents` | List uploaded RAG documents |
 | `GET` | `/api/v1/agents` | View status of active sub-agents |
 | `GET` | `/api/v1/dashboard/stats` | View system analytics & model status |
+
+---
+
+## 📄 Python Usage Example
+
+You can invoke the Multi-Agent graph programmatically:
+
+```python
+from backend.app.graph.multi_agent_graph import multi_agent_system
+
+result = multi_agent_system.run(
+    query="Search for recent news on quantum computing and write a python summary",
+    chat_id="demo_session",
+    user_id="user_123",
+    provider="gemini",
+    model="gemini-3.6-flash"
+)
+
+print("Agents Executed:", result["execution_plan"])
+print("Synthesized Response:\n", result["final_response"])
+```
+
+---
+
+## 🛠 Troubleshooting Common Issues
+
+- **Backend Port Mismatch**: The backend defaults to port `8001`. The frontend includes dual-port auto-detection (`8000` & `8001`) to automatically resolve connection errors.
+- **Gemini API Key 404 Error**: Ensure your `.env` model string uses `gemini-3.6-flash` as deprecated endpoints (`gemini-1.5-flash`) have been sunset by Google.
+- **Ollama Offline**: If using Ollama locally, start the service using `ollama serve` before switching providers.
 
 ---
 
